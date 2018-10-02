@@ -1,0 +1,5 @@
+#format drives
+Get-NetAdapter -Name Ethernet | Rename-NetAdapter -NewName vLab
+New-NetIPAddress 10.0.0.3 -InterfaceAlias "vLab" -PrefixLength 24 -DefaultGateway 10.0.0.2 -AddressFamily IPv4
+set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0Enable-NetFirewallRule -DisplayGroup "Remote Desktop"set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1   New-NetFirewallRule -Name Allow_Ping -DisplayName "Allow Ping"ù  -Description "Packet Internet Groper ICMPv4"ù -Protocol ICMPv4 -IcmpType 8 -Enabled True -Profile Domain -Action AllowDisable-NetAdapterBinding -Name vLab -ComponentID ms_tcpip6Enable-NetAdapterIPsecOffload -Name vLabEnable-NetAdapterRss -Name vLab
+Install-WindowsFeature Net-Framework-Core -source D:\sources\sxsAdd-Computer -DomainName vlab.varandas.com -Restart -NewName SQL1#Install Configure Remote Access and Routing#Install and Configure DNS, join to DC DNS setup forward to Google
