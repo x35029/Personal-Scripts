@@ -1,0 +1,21 @@
+
+***** Para adicionar em o Deny the SetValue para o SYSTEM via PowerShell
+
+$RegACL2bAdded = New-Object System.Security.AccessControl.RegistryAccessRule ("NT AUTHORITY\SYSTEM", "SetValue", "Deny")
+$RegACL = Get-Acl "HKLM:\SOFTWARE\Policies\Adobe\Acrobat Reader\11.0\FeatureLockdown"
+$RegACL.AddAccessRule($RegACL2bAdded)
+Set-Acl -Path $RegACL.Path $RegACL
+$RegACL = Get-Acl "HKLM:\SOFTWARE\Policies\Adobe\Acrobat Reader\11.0\FeatureLockdown\cDefaultLaunchAttachmentPerms"
+$RegACL.AddAccessRule($RegACL2bAdded)
+Set-Acl -Path $RegACL.Path $RegACL
+
+***** Para remover em o Deny the SetValue para o SYSTEM via PowerShell
+
+$RegACL2bAdded = New-Object System.Security.AccessControl.RegistryAccessRule ("NT AUTHORITY\SYSTEM", "SetValue", "Deny")
+$RegACL = Get-Acl "HKLM:\SOFTWARE\Policies\Adobe\Acrobat Reader\11.0\FeatureLockdown"
+$RegACL.RemoveAccessRule($RegACL2bAdded)
+Set-Acl -Path $RegACL.Path $RegACL -Force
+$RegACL = Get-Acl "HKLM:\SOFTWARE\Policies\Adobe\Acrobat Reader\11.0\FeatureLockdown\cDefaultLaunchAttachmentPerms"
+$RegACL.RemoveAccessRule($RegACL2bAdded)
+Set-Acl -Path $RegACL.Path $RegACL
+

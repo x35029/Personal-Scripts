@@ -1,0 +1,486 @@
+param( [switch]$Debug, [switch]$NoRelaunch, [switch]$Install, [switch]$Uninstall, [switch]$Push )
+
+$SCRIPT_TITLE = "SCCM Console 1606 for TS"
+$SCRIPT_VERSION = "1.0"
+
+#Set default behavior if an error occurs. this should be set to "SilentlyContinue" for deployment, but can be changed for testing.
+$ErrorActionPreference 	= "SilentlyContinue"	# SilentlyContinue / Stop / Continue
+
+# --------------------------------------------------------------------------------------------
+# Script Name: Install-SCCM_Console_1606_for_TS.ps1
+#
+# Version: 1.0
+#
+# Based on PS Template Script Version: 1.0
+#
+# Author: Jose Varandas
+#
+# Owned By: WDS OS Engineering
+#
+# Purpose: Install SCCM Console 1606 in a Terminal Server, creating necessary shortcuts for v-AppConnect
+#
+# Created:  10/16/2016
+#
+# Dependencies: Script must be run with administrative rights
+#
+# Known Issues: None
+#
+# Arguments: 
+#		/debug or -debug - Enables debug logging in the script, and disables default 
+#							On Error Resume Next statements
+#
+# Exit Codes:
+#            0 - Script completed successfully
+#			 9999 - Script completed unsuccessfully, throwing an unhandled error
+# 
+# Output: C:\XOM\Logs\System\SCCM\AppInstall\Install-SCCM_Console_1606_for_TS.ps1
+#    
+# Revision History: (Date, Author, Description)
+#		(Date 2016-10-16
+#			v1.0
+#			Jose Varandas
+#			WO0000008048785 - [PACE-TS64] Complex SW -  System Center Configuration Manager Console
+#				
+#				
+# -------------------------------------------------------------------------------------------- 
+
+# --------------------------------------------------------------------------------------------
+# Subroutines and Functions
+# --------------------------------------------------------------------------------------------
+
+# --------------------------------------------------------------------------------------------	
+# Sub Name: RelaunchIn64
+# Purpose: To relaunch the script as a 64bit process
+# Variables: None
+# --------------------------------------------------------------------------------------------
+Function RelaunchIn64
+{
+    ShowDebug "Restarting script in 64-bit PowerShell"
+    
+    $xpath = (Join-Path -Path ($PSHOME -replace "syswow64", "sysnative") -ChildPath "powershell.exe")
+    ShowDebug "PS Engine = $xpath"
+    ShowDebug "Command = $xpath $sCMDArgs"
+
+    $global:iExitCode = (Start-Process -FilePath $xpath -ArgumentList $sCMDArgs -Wait -PassThru -WindowStyle Hidden).ExitCode
+    ShowDebug "Exit Code = $global:iExitCode"
+    
+} #End of RelaunchIn64 function
+
+# --------------------------------------------------------------------------------------------
+# Function GetOSArchitecture
+# Purpose: Gets the OS Architecture version from WIM
+# Parameters: None
+# Returns: String with OSArchitecture
+# --------------------------------------------------------------------------------------------
+Function GetOSArchitecture()
+{
+    $OSArchitecture = Get-WMIObject -class "Win32_OperatingSystem" -computername "."
+	$OSArchitecture = $OSArchitecture.OSArchitecture.toString().toLower()
+    return $OSArchitecture
+} #End of GetOSArchitecture function
+
+# --------------------------------------------------------------------------------------------
+# Function Name: IsVirtualMachine
+# Purpose: To identify if the machine is a virtual machine or not
+# Variables: None
+# Returns: Boolean value (True or False) of whether the machine is a virtual machine or not
+# --------------------------------------------------------------------------------------------
+Function IsVirtualMachine()
+{
+	$bReturn = $false
+	$sModel = Get-WMIObject -class "Win32_ComputerSystem" -computername "."
+	$sModel = $sModel.Model.toString().toLower()
+	If(($sModel.Contains("virtual machine")) -or ($sModel.Contains("vmware virtual platform")))
+	{
+		$bReturn = $true
+	}
+	return $bReturn
+} #End of IsVirtualMachine function
+
+# --------------------------------------------------------------------------------------------	
+# Function Name: GetOSVersion
+# Purpose: To get the OS Version via WMI
+# Variables: None
+# Returns: OS Version from WMI
+# --------------------------------------------------------------------------------------------	
+Function GetOSVersion()
+{
+	$version = Get-WMIObject -class "Win32_OperatingSystem" -computername "."
+	$version = $version.Version.toString().toLower()
+	return $version
+} #End of GetOSVersion function
+
+# --------------------------------------------------------------------------------------------	
+# Function Name: IsOnVPN
+# Purpose: Checks to see if the machine is currently connected to VPN
+# Variables: None
+# Returns: Boolean (True or False) if the machine is connected to VPN
+# --------------------------------------------------------------------------------------------
+Function IsOnVPN()
+{
+	$iRegData = 0
+	$bReturn = $false
+	$iRegData = (Get-ItemProperty -Path hklm:\SOFTWARE\ExxonMobil\GME).VPNConnected
+	If($iRegData -eq 1) { $bReturn = $true }
+	return $bReturn
+} #End of IsOnVPN function
+
+# --------------------------------------------------------------------------------------------
+# Function StartLog
+# Purpose: Checks to see if a log file exists and if not, created it
+#          Also checks log file size
+# Parameters:
+# Returns: None
+# --------------------------------------------------------------------------------------------
+Function StartLog()
+{	
+    #Check to see if the log folder exists. If not, create it.
+    If (!(Test-Path $sOutFilePath )) {
+        New-Item -type directory -path $sOutFilePath | Out-Null
+    }
+
+    #Check to see if the log file exists. If not, create it
+    If (!(Test-Path $sLogFile )) {
+        New-Item $sOutFilePath -name $sOutFileName -type file | Out-Null
+    }
+	Else
+	{
+        #File exists, check file size
+		$sLogFile = Get-Item $sLogFile
+        
+        # Check to see if the file is > 1 MB and purge if possible
+        If ($sLogFile.Length -gt $iLogFileSize) {
+            $sHeader = "`nMax file size reached. Log file deleted at $global:dtNow."
+            Remove-Item $sLogFile  #Remove the existing log file
+            New-Item $sOutFilePath -name $sOutFileName -type file  #Create the new log file
+        }
+    }
+
+    LogIt $sHeader -iTabs 0  
+	LogIt -sMessage "############################################################" -iTabs 0 
+    LogIt -sMessage "" -iTabs 0 
+    LogIt -sMessage "============================================================" -iTabs 0 	
+    LogIt -sMessage "$SCRIPT_TITLE ($sScriptName) $SCRIPT_VERSION" -iTabs 0 
+	LogIt -sMessage "============================================================" -iTabs 0 
+	LogIt -sMessage "Script Started at $(Get-Date)" -iTabs 0 
+	LogIt -sMessage "" -iTabs 0 
+
+} #End of CheckLogFile function
+
+# --------------------------------------------------------------------------------------------
+# Function ShowDebug
+# Purpose: Allows you to show debug information
+# Parameters: 
+#    sText - Text to display as debug
+#    iTabs - number of tabs to indent the text
+# Returns: none
+# --------------------------------------------------------------------------------------------
+Function ShowDebug()
+{
+    param( [string]$sText="", [int]$iTabs=0 ) 
+    
+    if ($Debug -eq $true) {Write-Host  $sText}
+
+} #End of ShowDebug function
+
+# --------------------------------------------------------------------------------------------
+# Function LogIt
+# Purpose: Writes specified text to the log file
+# Parameters: 
+#    sMessage - Message to write to the log file
+#    iTabs - Number of tabs to indent text
+#    sFileName - name of the log file (optional. If not provied will default to the $sLogFile in the script
+# Returns: None
+# --------------------------------------------------------------------------------------------
+Function LogIt()
+{
+    param( [string]$sMessage="", [int]$iTabs=0, [string]$sFileName=$sLogFile )
+    
+    #Loop through tabs provided to see if text should be indented within file
+    $sTabs = ""
+    For ($a = 1; $a -le $iTabs; $a++) {
+        $sTabs = $sTabs + "    "
+    }
+
+    #Populated content with tabs and message
+    $sContent = $sTabs + $sMessage
+
+    #Write contect to the file and if debug is on, to the console for troubleshooting
+    Add-Content $sFileName -value  $sContent
+    ShowDebug $sContent
+	
+} #End of LogIt function
+
+# --------------------------------------------------------------------------------------------
+# Function EndLog
+# Purpose: Writes the last log information to the log file
+# Parameters: None
+# Returns: None
+# --------------------------------------------------------------------------------------------
+Function EndLog()
+{
+    #Loop through tabs provided to see if text should be indented within file
+	LogIt -sMessage "" -iTabs 0 
+    LogIt -sMessage "Script Completed at $(Get-date) with Exit Code $global:iExitCode" -iTabs 0  
+    LogIt -sMessage "============================================================" -iTabs 0     
+    LogIt -sMessage "" -iTabs 0 
+
+} #End of EndLog function
+
+# --------------------------------------------------------------------------------------------
+# Function CreateRegistryKeys
+# Purpose: Creates the registry key that is provided and 
+#          loops through the entire key to make sure all
+#          keys exist
+# Parameters: sRegKey - Registry key to check for\create
+# Returns: True = key exists or was created
+# --------------------------------------------------------------------------------------------
+Function CreateRegistryKeys()
+{
+    param( [string]$sRegKey="HKLM:\" ) 
+    
+    $bReturn = $false
+    #Clear any errors that may exist
+    $error.Clear()
+    #LogIt -sMessage "Checking for existance of $sRegKey..." -iTabs 0 
+    
+    #Check to see if the provided registry key exists
+    If (!(Test-Path -Path $sRegKey))
+    {
+        #If key doesn't exist, get parent key and check to see if it exists and create if necessary
+        $sParent = Split-Path $sRegKey
+        #Check to see if the parent was a "null" value
+        If ($sParent -ne $null)
+        {
+            $bReturn = CreateRegistryKeys -sRegKey $sParent
+        }
+        #after all parent keys have been processed, create key
+        #Check to see if the function returned a success
+        if ($bReturn)
+        {
+            New-Item -path $sRegKey
+            ShowDebug "$sRegKey was created"
+        }
+        Else
+        {
+            LogIt -sMessage "Error Creating Key: $error[0]" -iTabs 1 
+            Return $false
+        }
+    }
+    Else
+    {
+        Return $true
+    }
+        
+} #End of CreateRegistryKeys function
+
+# --------------------------------------------------------------------------------------------
+# Function SetRegistryValue
+# Purpose: Sets\Updates a registry value 
+# Parameters: $sRegKeyName = Registry Key
+#             $sRegValueName = Name of the registry value
+#             $sType = Type of registry value (DWORD, STRING, etc)
+#             $value = Value to be set in the $sRegValueName
+#             $bAddToWow6432 = Boolean to indicate whether to add same
+#                 value to the Wow6432Node (only if OS type is 64-bit)
+# Returns: True = Success
+#         False = Failure
+# --------------------------------------------------------------------------------------------
+Function SetRegistryValue()
+{
+    param(	[string]$sRegKeyName, 
+			[string]$sRegValueName, 
+			[ValidateSet("String","ExpandString","Binary","DWord","MultiString","QWord")]$sType="String", 
+			$value, 
+			[boolean]$bAddToWow6432=$false )
+
+    #Check to see if we should update the WOW6432Node as well
+    If (($global:bIs32Bit -eq $false) -and ( $bAddToWow6432 -eq $true ))
+    {
+        LogIt -sMessage "Entries should be added to WOW6432Node." -iTabs 0 
+        $sRegWOWKeyName = $sRegKeyName.Replace("Software", "Software\Wow6432Node")
+        
+		SetRegistryValue -sRegKeyName $sRegWOWKeyName -sRegValueName $sRegValueName -sType $sType -value $value		
+    }
+        
+    #Check to see if the Registy Key exists
+    $bRegReturn = CreateRegistryKeys -sRegKey $sRegKeyName
+    
+	#If the registry keys exist or were created successfully
+    If ($bRegReturn)
+    {
+        #Add registry keys 
+        LogIT -sMessage "Updating Registry..." -iTabs 0             
+        LogIt -sMessage "Registry Key = $sRegKeyName" -iTabs 1 
+        LogIt -sMessage "Registry Value Name = $sRegValueName" -iTabs 1 
+        LogIt -sMessage "Registry Value Type = $sType" -iTabs 1 
+        LogIt -sMessage "Registry Value = $value" -iTabs 1 
+        
+        #Clear errors
+        $error.Clear()
+        Set-ItemProperty $sRegKeyName -name $sRegValueName -type $sType -value $value
+		
+        #Check to see if an error occurred
+        If (!($?)) 
+        {
+            LogIt -sMessage "Error adding entry to registry: $error" -iTabs 1 
+        }
+        Else #No error
+        {
+            LogIt -sMessage "Entry successfully added to registry" -iTabs 1 
+        }
+    }
+    Else #CheckRegistryKeys returned failure
+    {
+        LogIt -sMessage "Could not set registry value. Parent key(s) didn't exist." -iTabs 0 
+    }
+    
+    LogIt -sMessage "" -iTabs 0 
+
+} #End of SetRegistryValue function
+
+# --------------------------------------------------------------------------------------------
+# End of FUNCTIONS
+# --------------------------------------------------------------------------------------------
+
+
+# --------------------------------------------------------------------------------------------
+# Variable Declarations
+# --------------------------------------------------------------------------------------------
+# *****  Change Logging Path and File Name Here  *****
+$sLogContext	= "System" 		# System / User 
+$sLogFolder		= "SCCM\Deployment"	# Folder Name
+$sOutFileName	= "39210 - System Center Configuration Manager Console for TS - 1606.log" # Log File Name
+# ****************************************************
+$sScriptName 	= $MyInvocation.MyCommand
+$sScriptPath 	= Split-Path -Parent $MyInvocation.MyCommand.Path
+$sOSBit			= GetOSArchitecture
+$bIs64bit		= $sOSBit -eq "64-bit"
+$bIsVM			= IsVirtualMachine
+$sOSVersion		= GetOSVersion
+$bIsWin7		= $sOSVersion.StartsWith("6.1") 
+$bIsWin8		= $sOSVersion.StartsWith("6.2")
+$bIsWin81		= $sOSVersion.StartsWith("6.3")
+$bIsWin10		= $sOSVersion.StartsWith("10.")
+$bIsOnVPN		= IsOnVPN
+$sLogRoot		= "C:\XOM\Logs"
+$sOutFilePath	= Join-Path -Path (Join-Path -Path $sLogRoot -ChildPath $sLogContext) -ChildPath $sLogFolder
+$sLogFile		= Join-Path -Path $sOutFilePath -ChildPath $sOutFileName
+$global:iExitCode = 0
+$sUserName		= $env:username
+$sUserDomain	= $env:userdomain
+$sMachineName	= $env:computername
+$sCMDArgs		= $MyInvocation.Line
+$bAllow64bitRelaunch = $true
+$iLogFileSize 	= 1048576
+
+# Script Specific Variables
+
+
+# --------------------------------------------------------------------------------------------
+# Main Sub
+# --------------------------------------------------------------------------------------------
+Function MainSub
+{
+    #Write default log file information to the log file
+	LogIt -sMessage "Variables:" -iTabs 0 
+	LogIt -sMessage "Script Title = $SCRIPT_TITLE" -iTabs 1 
+	LogIt -sMessage "Script Name = $sScriptName" -iTabs 1 
+	LogIt -sMessage "Script Version = $SCRIPT_VERSION" -iTabs 1 
+	LogIt -sMessage "Script Path = $sScriptPath" -iTabs 1
+	LogIt -sMessage "User Name = $sUserDomain\$sUserName" -iTabs 1
+	LogIt -sMessage "Machine Name = $sMachineName" -iTabs 1
+	LogIt -sMessage "OS Version = $sOSVersion" -iTabs 1
+	LogIt -sMessage "OS Architecture = $sOSBit" -iTabs 1
+	LogIt -sMessage "Is Windows 7 = $bIsWin7" -iTabs 1
+	LogIt -sMessage "Is Windows 8.1 = $bIsWin81" -iTabs 1
+	LogIt -sMessage "Is Windows 10 = $bIsWin10" -iTabs 1
+	LogIt -sMessage "Is 64-bit OS = $bIs64bit" -iTabs 1
+	LogIt -sMessage "Is Virtual Machine = $bIsVM" -iTabs 1
+	LogIt -sMessage "VPN Connected = $bIsOnVPN" -iTabs 1
+	LogIt -sMessage "Log File = $sLogFile" -iTabs 1
+	LogIt -sMessage "Command Line: $sCMDArgs" -iTabs 1
+	LogIt -sMessage "Debug = $Debug" -iTabs 1
+	LogIt -sMessage "" -iTabs 0
+	
+	# Your scripts starts here
+	
+    # Installing SCCM Console
+    LogIt -sMessage "Starting to execute Script" -iTabs 0
+    If(($Install) -and ($Uninstall)){ 
+        LogIt -sMessage "Wrong Parameters. Use -Install OR -Uninstall" -iTabs 1
+        return 9900
+    }
+    elseIf(($Install) -and ($Push)) { 
+        LogIt -sMessage "Script installing silently SCCM Console" -iTabs 1
+        $command = ".\consolesetup.exe /q TargetDir=`"C:\Program Files\Microsoft Configuration Manager\AdminConsole`" EnableSQM=0 DefaultSiteServerName=DALCFG01.NA.XOM.COM"
+        LogIt -sMessage "$command" -iTabs 1
+        $exitCode = (Start-Process -FilePath "consolesetup.exe" -ArgumentList "/q TargetDir=`"C:\Program Files\Microsoft Configuration Manager\AdminConsole`" EnableSQM=0 DefaultSiteServerName=DALCFG01.NA.XOM.COM" -wait).ExitCode
+        LogIt -sMessage "Exit Code: $exitCode" -iTabs 1
+    }
+    elseif(($Uninstall) -and ($Push)){
+        LogIt -sMessage "Script uninstalling silently SCCM Console 1606" -iTabs 1
+        LogIt -sMessage "" -iTabs 1
+        $command = "msiexec.exe /x {669D8708-D6AF-47EF-949E-83E651CEDC7A} /quiet"
+        LogIt -sMessage "$command" -iTabs 1
+        Start-Process "msiexec.exe" -ArgumentList "/x {669D8708-D6AF-47EF-949E-83E651CEDC7A} /quiet" -Wait
+    }
+     elseif($Uninstall){
+        LogIt -sMessage "Script uninstalling SCCM Console 1606" -iTabs 1
+        LogIt -sMessage "" -iTabs 1
+        $command = "msiexec.exe /x {669D8708-D6AF-47EF-949E-83E651CEDC7A} /passive"
+        LogIt -sMessage "$command" -iTabs 1
+        $exitCode = (Start-Process "msiexec.exe" -ArgumentList "/x {669D8708-D6AF-47EF-949E-83E651CEDC7A} /passive" -Wait).ExitTime
+        LogIt -sMessage "Exit Code: $exitCode" -iTabs 1
+    }
+    elseIf($Install) { 
+        LogIt -sMessage "Script installing SCCM Console" -iTabs 1
+        LogIt -sMessage "" -iTabs 1
+        $command = ".\consolesetup.exe TargetDir=`"C:\Program Files\Microsoft Configuration Manager\AdminConsole`" EnableSQM=0 DefaultSiteServerName=DALCFG01.NA.XOM.COM"
+        LogIt -sMessage "$command" -iTabs 1
+        $exitCode = (Start-Process -FilePath ".\consolesetup.exe" -ArgumentList "/q TargetDir=`"C:\Program Files\Microsoft Configuration Manager\AdminConsole`" EnableSQM=0 DefaultSiteServerName=DALCFG01.NA.XOM.COM" -wait).ExitCode
+        LogIt -sMessage "Exit Code: $exitCode" -iTabs 1
+    }
+    else{
+        LogIt -sMessage "Wrong Script usage." -iTabs 1
+        LogIt -sMessage "Install with UI: .\Install.ps1 -Install" -iTabs 2
+        LogIt -sMessage "Install Silently: .\Install.ps1 -Install -PUSH" -iTabs 2
+        LogIt -sMessage "Uninstall with UI: .\Install.ps1 -Uninstall" -iTabs 2
+        LogIt -sMessage "Uninstall Silently: .\Install.ps1 -Uninstall -PUSH" -iTabs 2
+    }
+    LogIt -sMessage "" -iTabs 0    
+    LogIt -sMessage "============================================================" -iTabs 0      
+    LogIt -sMessage "" -iTabs 0
+    LogIt -sMessage "Script Execution Complete" -iTabs 0
+} #End of MainSub
+
+
+# --------------------------------------------------------------------------------------------
+# Main Processing (DO NOT CHANGE HERE)
+# --------------------------------------------------------------------------------------------
+
+If($Debug) { $ErrorActionPreference = "Stop" }
+
+# Prior to logging, determine if we are in the 32-bit scripting host on a 64-bit machine and need and want to re-launch
+If(!($NoRelaunch) -and $bIs64bit -and ($PSHOME -match "SysWOW64") -and $bAllow64bitRelaunch) {
+    Relaunchin64
+}
+Else {
+    # Starting the log
+    StartLog
+
+    Try {
+	    MainSub
+    }
+    Catch {
+	    # Log a general exception error
+	    LogIt -sMessage "Error running script" -iTabs 0
+	    $global:iExitCode = 9999
+    }
+
+    # Stopping the log
+    EndLog
+}
+
+# Quiting with our exit code
+Exit $global:iExitCode

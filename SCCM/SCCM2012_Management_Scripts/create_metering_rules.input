@@ -1,0 +1,8 @@
+Implement,ProductName,FileName,OriginalFileName,FileVersion,LanguageID,SiteCode,ApplyToChildSites,Enabled,MeteringFolder
+Y,_TestMeteringRule Test01,Test01.exe,Test01.exe,*,65535,P01,$TRUE,$TRUE,Test01
+Y,_TestMeteringRule Test02,Test02.exe,Test02.exe,*,65535,P01,$TRUE,$TRUE,Test02
+N,_TestMeteringRule Test03,Test03.exe,Test03.exe,*,65535,P01,$TRUE,$TRUE,Test03
+N,_TestMeteringRule Test04,Test04.exe,Test04.exe,*,65535,P01,$TRUE,$TRUE,Test01
+N,_TestMeteringRule Test05,Test05.exe,Test05.exe,*,65535,P01,$TRUE,$TRUE,Test01
+Y,_TestMeteringRule Test06,Test06.exe,Test06.exe,*,65535,P01,$TRUE,$TRUE,blabla
+Y,_TestMeteringRule Test07,Test07.exe,Test07.exe,*,65535,P01,$TRUE,$TRUE,Test02

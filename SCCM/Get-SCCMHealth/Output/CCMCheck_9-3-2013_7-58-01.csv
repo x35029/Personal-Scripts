@@ -1,0 +1,2 @@
+Server Name,EH,CCM Compliance,CCM Failure,Operating System,Service Pack,Architecture,Subnet ID,AD Site Code,Client Version,Management Point,CCM Site,Cache Size,Service Started,Service State,Service Status,Actions Count,Client Actions
+UPSTSS662,Error: WMI root\cimv2 - -2147024891 - Access is denied. ,,,,,,,,,,,,,,,,

@@ -1,0 +1,190 @@
+These notes should get you started with TSTool3
+If you encounter any problems, let me know and I will fix it for you.
+ 
+Check back to the TSTool3 Technet page for help and updated versions.
+http://gallery.technet.microsoft.com/scriptcenter/TSTool3-8bb4dc72
+
+Matthew Painter :)
+
+
+
+
+
+### Install Notes ###
+1. Download the zip file from Technet to get the latest version and associated files.
+2. Extract the all the contents into a folder that is centrally accessible on the network.
+3. Edit GlobalSettings.csv to reflect your SCCM environment 
+4. Email/distribute the path to install.vbs script and instruct the user to run it. 
+5. install.vbs will offer the user a custom TSTool3 shortcut on their desktop and start menu.
+
+The idea behind having one central copy of TSTool3 on the network and all users accessing via shortcut, is 
+that you only have to update the files in the TSTool3 source folder and all users get a new version when they next launch it. 
+
+The script MUST be launched via shortcut generated via install.vbs to ensure that PowerShell is launched in -sta mode. 
+
+
+
+
+
+### Usage ###
+When TSTool3 is first launched it will display the name of the current computer in the connection box. 
+Enter a new computer name or use the history drop down and press enter. 
+The enter key conveniently activates the 'Connect' button.
+
+TSTool will perform a connectivity test and update a colour indicator square next to the computer name
+. Gray - Disconnected
+. Green - Can ping and access WMI 
+. Blue - Can ping but WMI time-out or fail
+. Red - Off-line
+
+If the connectivity test passes then it will display details of the remote machine and allow remote functions to be run.
+TSTool3 will periodically test the connection in case the state of the remote machine is changed.  
+
+If TSTool3 has connectivity issues with a particular remote machine, simply press the disconnect button or close the script. 
+Most of the other features are completely visual or self explanatory. 
+
+
+
+
+
+### Location lookup file ###
+TSTool3 will display either the Subnet or the Physical location in the location label. 
+
+When TSTool3 is first run, (you should do this as a user with write access to the TSTool3 source folder), it will create location.csv.
+Edit location.csv in Excel and add the physical names that match each of your subnets. 
+For large enterprise networks where you have a separate subnet for each floor and many buildings, then this is an invaluable feature. 
+If you populate and maintain location.csv, then all TSTool3 users will benefit from real location lookups.
+
+
+# location.csv structure 
+
+Subnet,Location
+"0,0,0,0","Unknown"
+"192.168.0.0","Home Network"
+"192.168.1.0","Test Network"
+"192.168.40.0","Test Network2"
+
+
+# location.csv Interpretation
+
+Subnet - This is the IPv4 subnet as calculated from the primary IP Address and IP Subnet
+Location - This is the Physical location or the description of the Subnet.
+
+
+
+
+
+### SCCM Settings file ###
+TSTool3 supports SCCM. (Only tested SCCM 2012)
+Rather than hard code SCCM server settings into TSTool3, this is set via an external file.
+Edit GlobalSettings.csv (supplied in the distribution zip) with your SCCM environment settings. 
+When TSTool3 starts it looks for this settings file in the same folder where TSTool3.ps1 is saved. 
+If you have an SCCM server and have setup GlobalSettings.csv, then you will be able to access the SCCM software reports.
+GlobalSettings.csv is also used by the software profile filter GUI to locate the SCCM server.
+GlobalSettings.csv file may be updated with additional fields in future versions of TSTool3.
+
+
+# GlobalSettings.csv structure 
+
+"SCCMServer","SCCMNameSpace"
+"SCCM_ServerName","root\sms\site_SC1"
+
+
+# GlobalSettings.csv field identification
+
+SCCMServer - Your SCCM server
+SCCMNameSpace - The WMI NameSpace required to access your SCCM Server database
+
+
+
+
+
+### Registry User Preference Feature ###
+TSTool3 uses the registry to save user preferences.
+Currently, The 'Phone number filter' and the history count preferences are saved in the registry. 
+
+To completely remove TSTool3 from the client machine this registry key needs to be deleted. 
+
+# Location used:
+[HKEY_CURRENT_USER\Software\PowerShell\TSTool]
+
+A future release of TSTool3 may have an uninstall option that will delete this key for you. 
+
+
+
+
+
+### Machine Access History ###
+TSTool3 remembers the history of the last ~20 machines accessed by creating a CSV file in the current user's temp folder. 
+Under the options menu you can "Set History limit", this is the memory of the last machine you connected to
+
+history.csv has the following fields
+"User","Computer","Date"
+
+History may be moved to the registry in a future release.
+
+
+
+
+
+### Queensland Australia Phone Number Filter ###
+Actually this is customised specifically to the Sunshine Coast 07 54 area. 
+With the goal in mind of making TSTool3 universal, I have added this as a user preference selectable under the options menu.
+
+Unfortunately due to our phone number fields in AD being populated by the corporate staff phone directory, 
+the input is not validated and as a result random alpha numeric strings can be entered by the staff. 
+
+For example: 
+Instead of "0754123456", the user may enter "My number is 5412 3456 but dont give to public"
+Instead of "0754187654", the user may enter "54187654 Monday to Wednesday"
+
+It is probably useful reading the full blurbs the users put into the phone number field but you may want a nice clean number. 
+All our desk phones are IP connected and I can script TSTool3 to initiate a phone call and obviously that will need a clean number.
+However we are currently moving to a Lync 2010 setup and I need to do some more research to implement that. 
+
+Therefore, unless by some miracle your network is on the Sunshine Coast too, ignore and leave this feature turned off.
+Or if you are enterprising, replace it with your own phone number filter function... 
+Or perhaps your phone numbers in AD are validated already, i don't know.  
+
+
+
+
+
+### Script Update Check ###
+Initiated by user clicking a button, the script does a screen scrape of the project's page on Technet. 
+If the version published is newer then the script prompts if you would like to view project page. 
+If you download the latest version, the distribution zip contains details of changes made. 
+
+
+
+
+
+### Wake On Lan ###
+Prequisites
+· User running script needs reporting level access on SCCM server
+· Script only wakes up Windows7+ machines and all machines on network need PowerShell Remoting enabled
+· Script requires target machine to be in SCCM and correct location recorded (i.e not just moved from another subnet)
+· Script requires at least one machine on target subnet to be powered on.
+· Script requires target machine to have BIOS setup correctly to accept wakeup packets.
+· Script requires target machine plugged into live network and power point 
+
+
+
+
+
+### Software Profile Filter ###
+Tstool has the ability to pull software reports from both SCCM or live direct from the remote machine.
+These lists of programs can be long with updates and multiple entries per application so this is the solution.
+
+I have provided a separate GUI that will pull the same reports but offers a mechanism to create a filter list.
+Often I will generate a filtered list of apps on a remote machine and notice an new update and then remove it. 
+Every subsequent machine I hit will no longer show that item. If you trust all your techs, encourage them to maintain the list too.
+
+
+   
+
+
+
+
+
+

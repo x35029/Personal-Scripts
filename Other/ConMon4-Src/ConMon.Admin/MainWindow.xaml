@@ -1,0 +1,32 @@
+﻿<Window x:Class="ConMon.Admin.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Connection Monitor Admin" Height="384" Width="656" Loaded="Window_Loaded" ResizeMode="NoResize" Closing="Window_Closing">
+    <Grid Width="644">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="633*" />
+            <ColumnDefinition Width="11*" />
+        </Grid.ColumnDefinitions>
+        <Button Content="Start/Stop Service" Height="23" HorizontalAlignment="Left" Margin="282,13,0,0" Name="ConMonStartStopServiceButton" VerticalAlignment="Top" Width="102" Click="ConMonStartStopServiceButton_Click" />
+        <Label Content="Service is started" Height="28" HorizontalAlignment="Left" Margin="167,12,0,0" Name="ConMonServiceStatusLabel" VerticalAlignment="Top" Width="109" />
+        <ListBox Height="66" HorizontalAlignment="Left" Margin="12,46,0,0" Name="LogEntriesListBox" VerticalAlignment="Top" Width="372" />
+        <Label Content="Log Entries:" Height="28" HorizontalAlignment="Left" Margin="12,12,0,0" Name="ServiceMessagesLabel" VerticalAlignment="Top" Width="104" />
+        <ListBox Height="150" HorizontalAlignment="Left" Margin="0,153,0,0" Name="MonitoredDevicesListBox" VerticalAlignment="Top" Width="252" SelectionChanged="MonitoredDevicesListBox_SelectionChanged" />
+        <Label Content="Monitored Devices:" Height="28" HorizontalAlignment="Left" Margin="55,122,0,0" Name="MonitoredDevicesLabel" VerticalAlignment="Top" Width="114" />
+        <ListBox Height="150" HorizontalAlignment="Left" Margin="362,153,0,0" Name="AvailableDevicesListBox" VerticalAlignment="Top" Width="261" SelectionChanged="AvailableDevicesListBox_SelectionChanged" />
+        <Label Content="Available Devices:" Height="28" HorizontalAlignment="Left" Margin="362,122,0,0" Name="AvailableDevicesLabel" VerticalAlignment="Top" Width="108" />
+        <Button Content="&lt;- Monitor" Height="23" HorizontalAlignment="Left" Margin="266,180,0,0" Name="MonitorDeviceButton" VerticalAlignment="Top" Width="81" IsEnabled="False" Click="MonitorDeviceButton_Click" />
+        <Button Content="Unmonitor -&gt;" Height="23" HorizontalAlignment="Left" Margin="266,244,0,0" Name="UnmonitorDeviceButton" VerticalAlignment="Top" Width="81" IsEnabled="False" Click="UnmonitorDeviceButton_Click" />
+        <ListBox Height="56" HorizontalAlignment="Left" Margin="390,56,0,0" Name="DeviceTypeOrderListBox" VerticalAlignment="Top" Width="157" ItemsSource="{Binding}" SelectionChanged="DeviceTypeOrderListBox_SelectionChanged">
+            <ListBoxItem Content="Wireless" />
+            <ListBoxItem Content="3G/4G/Modem" />
+        </ListBox>
+        <Button Content="Up" Height="20" HorizontalAlignment="Left" Margin="553,54,0,0" Name="DeviceTypeOrderUpButton" VerticalAlignment="Top" Width="38" IsEnabled="False" Click="DeviceTypeOrderUpButton_Click" />
+        <Button Content="Down" Height="23" HorizontalAlignment="Left" Margin="553,76,0,0" Name="DeviceTypeOrderDownButton" VerticalAlignment="Top" Width="38" IsEnabled="False" Click="DeviceTypeOrderDownButton_Click" />
+        <Label Content="Device Type Order:" Height="28" Margin="390,29,46,0" Name="label1" VerticalAlignment="Top" />
+        <Button Content="Refresh" Height="21" HorizontalAlignment="Left" Margin="84,15,0,0" Name="LogEntriesRefreshButton" VerticalAlignment="Top" Width="50" Click="LogEntriesRefreshButton_Click" />
+        <Button Content="Refresh" Height="21" HorizontalAlignment="Left" Margin="468,124,0,0" Name="AvailableDevicesRefreshButton" VerticalAlignment="Top" Width="50" Click="AvailableDevicesRefreshButton_Click" />
+        <Button Content="Save" Height="23" HorizontalAlignment="Left" Margin="236,314,0,0" Name="SaveButton" VerticalAlignment="Top" Width="75" IsEnabled="False" Click="SaveButton_Click" />
+        <Button Content="Cancel" Height="23" HorizontalAlignment="Left" Margin="325,314,0,0" Name="CancelButton" VerticalAlignment="Top" Width="75" IsCancel="True" Click="CancelButton_Click" />
+    </Grid>
+</Window>

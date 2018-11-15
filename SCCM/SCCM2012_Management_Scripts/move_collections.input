@@ -1,0 +1,5 @@
+Implement,CollectionName,CollectionType,TargetFolder
+Y,TestCollection01,User,Test03
+Y,TestCollection02,Device,Test03
+Y,TestCollection03,Device,blabla
+Y,TestCollection04,User,Test03

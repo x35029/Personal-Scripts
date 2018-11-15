@@ -1,0 +1,241 @@
+<Package>
+	<Job id="CtxEnumServerXMLPort">
+		<Comment>
+			File: CtxEnumServerXMLPort.Wsf
+			Author:	Kleber Carraro
+			Change History: 03/12/2012 - Script Created.
+		</comment>
+		<runtime>
+			<description>
+				Enum XML Port By Server
+			</description>
+			<example>
+				CScript //nologo CtxEnumServerXMLPort.Wsf
+			</example>
+  		</runtime>
+		<reference object="MetaFrameCOM.MetaFrameFarm"/>
+		<script language="VBScript">
+		Option Explicit
+
+		'
+		' Debug Handler - Ref: http://technet.microsoft.com/en-us/library/ee156618.aspx
+		'
+		Public DEBUGMODE
+		If WScript.Arguments.Count = 1 Then
+			If WScript.Arguments.Item(0) = "" OR UCASE(WScript.Arguments.Item(0)) <> "DEBUG" Then
+				DEBUGMODE = False
+			ElseIf UCase(WScript.Arguments.Item(0)) = "DEBUG" Then
+				WScript.Arguments.Item(0) 
+				DEBUGMODE = True
+			End If
+		Else
+			DEBUGMODE = False
+		End If
+		WScript.StdOut.WriteLine("Debug Mode: " & DEBUGMODE)
+		If DEBUGMODE = False Then
+			On Error Resume Next
+		Else
+			On Error Goto 0
+		End If
+
+		'
+		' Environment Setup
+		'
+		Const FOR_APPENDING = 8
+		Dim strScriptPath 	: strScriptPath = Replace(WScript.ScriptFullName, WScript.ScriptName, "")
+		Dim arrScriptName 	: arrScriptName = Split(WScript.ScriptName, ".", -1)
+		Dim strScriptName 	: strScriptName = arrScriptName(LBound(arrScriptName))  
+		Dim objFSO		: Set objFSO = CreateObject( "Scripting.FileSystemObject" )
+		Dim objShell	  	: Set objShell = WScript.CreateObject("WScript.Shell")
+		Dim objNetwork		: Set objNetwork = CreateObject("Wscript.Network")
+		Dim objNamedArguments	: Set objNamedArguments = WScript.Arguments.Named
+		Dim strCurrentDate	: strCurrentDate =  Month(Date) & "-" & Day(Date) & "-" & Year(Date) & "_" & Replace(Left(Time,8),":","-")
+		Dim strLogFile		: strLogFile = FnCreateLog(strScriptName, strScriptPath, objNetwork.ComputerName, objNetwork.UserName, strCurrentDate)
+		Dim objLogFile		: Set objLogFile = objFSO.OpenTextFile(strLogFile, FOR_APPENDING)
+		Dim strHeadings, strResults
+				
+		' 
+		' Functional Variables
+		'
+		Dim theFarm
+		
+
+		'
+		' Create MetaFrameFarm object
+		'
+		Err.Clear
+		Set theFarm = CreateObject("MetaFrameCOM.MetaFrameFarm")
+		If Err.Number <> 0 Then
+			WScript.StdOut.WriteLine "Can't create MetaFrameFarm object."
+			WScript.StdOut.WriteLine "(" & Err.Number & ") " & Err.Description
+			WScript.StdOut.WriteBlankLines(1)
+			Call ObjectCleanup()
+		End If
+
+		
+		'
+		' Initialize the farm object.
+		'
+		Err.Clear
+		theFarm.Initialize(MetaFrameWinFarmObject)
+		If Err.Number <> 0 Then
+			WScript.StdOut.WriteLine "Can't  Initialize MetaFrameFarm object."
+			WScript.StdOut.WriteLine "(" & Err.Number & ") " & Err.Description
+			WScript.StdOut.WriteBlankLines(1)
+			Call ObjectCleanup()
+		End If
+
+
+		'
+		' Are you Citrix Administrator?
+		'
+		If theFarm.WinFarmObject.IsCitrixAdministrator = 0 then
+			WScript.StdOut.WriteLine "You must be a Citrix admin to run this script." 
+			WScript.StdOut.WriteBlankLines(1)
+			Call ObjectCleanup()
+		End If
+
+
+		'
+		' Output Headings
+		'
+		strHeadings = 	"Server Name" & "," & _ 
+				"Farm Name" & "," & _ 
+				"XML Port"
+
+		' Log File Headings		
+		objLogFile.WriteLine strHeadings
+
+		'Display Headings
+		WScript.StdOut.WriteBlankLines(1)
+		Call FnShowResults(strHeadings)
+
+		'
+		' Initialize Server Object.
+		'
+		Err.Clear
+		Dim aServer : Set aServer = theFarm.Servers
+		If Err.Number <> 0 Then
+			WScript.StdOut.WriteLine "Can't Initialize MetaFrameFarm object."
+			WScript.StdOut.WriteLine "(" & Err.Number & ") " & Err.Description
+			WScript.StdOut.WriteBlankLines(1)
+			Call ObjectCleanup()
+		End If
+
+		'
+		' Display all servers in the farm.
+		'
+		For Each aServer In theFarm.Servers
+
+			Dim strServerName : strServerName = aServer.ServerName
+			WScript.StdOut.WriteLine "Server: " & strServerName
+			Dim strFarmName : strFarmName = theFarm.FarmName
+			strResults =	strServerName   & "," & _
+					strFarmName
+					
+
+			'
+			' Initialize MetaFrameWinServer object.
+			'
+			Err.Clear
+			Dim bWinServer : Set bWinServer = aServer.WinServerObject2
+			If Err.Number <> 0 Then
+				WScript.StdOut.WriteLine "Can't Initialize WinServer object."
+				WScript.StdOut.WriteLine "(" & Err.Number & ") " & Err.Description
+				WScript.StdOut.WriteBlankLines(1)
+				strResults = strResults & "," & "Can't Initialize WinServer object."
+				Call ObjectCleanup()
+				objLogFile.WriteLine strResults
+				Call FnShowResults(strResults)
+				strResults = ""
+			Else
+ 				Dim intXMLPoprtNumber : intXMLPoprtNumber = bWinServer.XMLPortNumber
+				strResults = strResults & "," & intXMLPoprtNumber
+				objLogFile.WriteLine strResults
+				Call FnShowResults(strResults)
+				intXMLPoprtNumber = ""
+				strResults = ""
+				Set bWinServer = Nothing
+			End if
+		Next
+
+
+		Call ObjectCleanup()
+		WScript.StdOut.WriteBlankLines(1)
+ 		WScript.StdOut.WriteLine("Log File Created: " & strLogFile)
+
+		
+		' 
+		' Function Object Cleanup - Clean / Delete objects created during the execution.
+		'
+		Function ObjectCleanup()
+			Set theFarm = Nothing
+			objLogFile.Close
+			Set objNamedArguments = Nothing
+			Set objShell = Nothing
+			Set objFSO = Nothing
+			Set objNetwork = Nothing
+			Wscript.Quit
+		End Function
+
+
+		' 
+		' Function Open Input File
+		'
+		Function OpenInputFile(strInputFile)
+			Const FOR_READING = 1
+			If Not objFSO.FileExists(strInputFile) Then
+				WScript.StdOut.WriteLine("ERROR: " & "Input file " & strInputFile & " does not exist, aborting script.")
+				Wscript.Quit
+			Else
+				Dim objInputFile : Set objInputFile = objFSO.OpenTextFile(strInputFile, FOR_READING)
+				If objInputFile.AtEndOfStream Then
+					WScript.StdOut.WriteLine("ERROR: " & "Input file: " & strInputFile & " is empty, aborting script.")
+					Wscript.Quit
+				Else
+					Dim arrInputItems : arrInputItems = Split(objInputFile.ReadAll, vbNewLine)
+					OpenInputFile = arrInputItems
+					objInputFile.Close
+				End If
+				Set objInputFile = Nothing
+			End If
+		End Function
+
+		
+		' 
+		' Function Create Output Log File <scriptname.csv>
+		'
+		Function FnCreateLog(strScriptName, strScriptPath, strComputerName, strUserName, strCurrentDateTime) 
+			Dim strLogPath	: strLogPath = strScriptPath & "Output\"
+			Dim strLogName	: strLogName = strScriptName & "_" & UCase(strComputerName) & "_" & UCase(strUserName) & "_" & strCurrentDateTime & ".csv"
+			Dim strMessage
+			If Not objFSO.FolderExists(strLogPath) Then
+				objFSO.CreateFolder(strLogPath)
+			End If
+			Err.Clear
+			If objFSO.FileExists(strLogPath & strLogName) Then
+				objFSO.DeleteFile strLogPath & strLogName, 1
+			End If
+			' File is locked - Opened in Excel
+			'MsgBox(Err.Number)
+			If Err.Number = 70 Then
+				strMessage = "Log file: " & strLogPath & strLogName & " is already opened, close it before proceed."
+				MsgBox strMessage, 16, "Error"
+				Call FnCreateLog(strScriptName, strScriptPath, strUserName)
+			Else
+				objFSO.CreateTextFile strLogPath & strLogName
+			End If
+			FnCreateLog = strLogPath & strLogName
+		End Function
+
+
+		'
+		' Function Show Results on Screen
+		'
+		Function FnShowResults(strContents)
+			'strContents = Replace(strContents,",",vbTab)
+			WScript.StdOut.WriteLine strContents
+		End Function
+		</script>
+	</job>
+</package>

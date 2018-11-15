@@ -1,0 +1,15 @@
+vLab00 - DC01
+vLab01 - SQL01
+vLab02 - SCCM01
+vLab03 - Controller01
+vLab04 - PVS01
+PL01 - Windows XP
+PL02 - Windows Server 2003
+PL03 - Windows Vista
+PL04 - Windows Server 2008 SP2
+PL05 - Windows 7 Ult
+PL06 - Windows Server 2008R2
+PL07 - Windows 8.1
+PL08 - Windows Server 2012R2
+PL09 - Windows 10 Ent
+PL10 - Windows Server Next

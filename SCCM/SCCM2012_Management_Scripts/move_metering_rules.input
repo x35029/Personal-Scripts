@@ -1,0 +1,8 @@
+Implement,ProductName,TargetFolder
+Y,_TestMeteringRule Test01,Test01
+Y,_TestMeteringRule Test02,blabla
+N,_TestMeteringRule Test03,Test01
+N,_TestMeteringRule Test04,Test01
+N,_TestMeteringRule Test05,Test01
+Y,_TestMeteringRule Test06,Test01
+Y,_TestMeteringRule Test07,Test01

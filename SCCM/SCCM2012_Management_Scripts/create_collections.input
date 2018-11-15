@@ -1,0 +1,5 @@
+Implement,CollectionName,CollectionType,CollectionLimit,CollectionFolder,CollectionComment,RefreshSchedule,RuleType,RuleName,RuleQuery
+Y,TestCollection01,Device,Test01,Test01,All pysical machines,D1,Windows7Computers,"select * from SMS_R_System"
+Y,TestCollection02,Device,All Systems,Computers,,D7,,
+N,TestCollection03,Device,Adobe_Reader,Test03,,D7,,
+Y,TestCollection04,User,Test04,Test04,,D7,,

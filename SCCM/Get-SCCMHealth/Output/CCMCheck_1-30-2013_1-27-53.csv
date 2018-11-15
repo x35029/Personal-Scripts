@@ -1,0 +1,598 @@
+Server Name,EH,CCM Compliance,CCM Failure,Operating System,Service Pack,Architecture,Subnet ID,AD Site Code,Client Version,Management Point,CCM Site,Cache Size,Service Started,Service State,Service Status,Actions Count,Client Actions
+CALTSS001,0,True,"",Windows Server 2003,Service Pack 2,32-bit,10.193.8.0,CAL,4.00.6487.2000,cgycmpv70.na.xom.com,CAP,9259,True,Running,OK,11,"Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}"
+CALTSS005,0,True,"",Windows Server 2003,Service Pack 2,32-bit,10.193.8.0,CAL,4.00.6487.2000,cgycmpv70.na.xom.com,CAP,9259,True,Running,OK,11,"Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}"
+CALTSS006,0,True,"",Windows Server 2003,Service Pack 2,32-bit,10.193.8.0,CAL,4.00.6487.2000,cgycmpv70.na.xom.com,CAP,9259,True,Running,OK,11,"Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}"
+CALTSS051,0,True,"",Windows Server 2008,Service Pack 2,64-bit,142.37.64.0,CAL,4.00.6487.2000,cgycmpv70.na.xom.com,CAP,10239,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"
+CALTSS052,0,True,"",Windows Server 2008,Service Pack 2,64-bit,142.37.64.0,CAL,4.00.6487.2000,cgycmpv70.na.xom.com,CAP,10239,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"
+CALTSS053,0,True,"",Windows Server 2008,Service Pack 2,64-bit,142.37.55.0,CAL,4.00.6487.2000,cgycmpv70.na.xom.com,CAP,1024,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"
+CALTSS102,0,False,"Actions Missing",Windows Server 2003,Service Pack 2,32-bit,142.37.55.0,CAL,4.00.6487.2000,cgycmpv70.na.xom.com,CAP,6758,True,Running,OK,8,"Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}"
+DALTSS105,0,True,"",Windows Server 2003,Service Pack 2,32-bit,131.126.26.0,DAL,4.00.6487.2000,dalcmpv70.na.xom.com,USP,5120,True,Running,OK,11,"Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}"
+DALTSS115,0,True,"",Windows Server 2003,Service Pack 2,32-bit,10.216.156.0,DAL,4.00.6487.2000,dalcmpv70.na.xom.com,USP,5120,True,Running,OK,11,"Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}"
+DALTSS134,0,True,"",Windows Server 2003,Service Pack 2,32-bit,10.216.180.0,DAL,4.00.6487.2000,dalcmpv70.na.xom.com,USP,1024,True,Running,OK,11,"Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}"
+DALTSS404,0,True,"",Windows Server 2003,Service Pack 2,32-bit,131.126.26.0,DAL,4.00.6487.2000,dalcmpv70.na.xom.com,USP,9191,True,Running,OK,11,"Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}"
+DOHTSS500,Error: Server Unreachable,,,,,,,,,,,,,,,,
+DOHTSS501,Error: Server Unreachable,,,,,,,,,,,,,,,,
+ESHTSS006,0,True,"",Windows Server 2003,Service Pack 2,32-bit,10.204.8.0,ESH,4.00.6487.2000,kulcmpv70.ap.xom.com,ASP,9191,True,Running,OK,11,"Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}"
+ESHTSS050,0,True,"",Windows Server 2008,Service Pack 2,64-bit,172.31.5.0,ESH,4.00.6487.2000,kulcmpv70.ap.xom.com,ASP,10239,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"
+ESHTSS107,Error: CCMExec Service Service Unavailable,,,,,,,,,,,,,,,,
+ESHTSS500,Error: WMI root\cimv2 - -2147023174 - The RPC server is unavailable. ,,,,,,,,,,,,,,,,
+FRSTSS051,0,True,"",Windows Server 2008,Service Pack 2,64-bit,10.206.90.128,FRS,4.00.6487.2000,lhdcmpv70.ea.xom.com,EUP,10239,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"
+FRSTSS500,Error: Server Unreachable,,,,,,,,,,,,,,,,
+FRSTSS501,Error: WMI root\cimv2 - -2147023174 - The RPC server is unavailable. ,,,,,,,,,,,,,,,,
+HOETSS051,0,True,"",Windows Server 2008,Service Pack 2,64-bit,10.215.25.0,HOE,4.00.6487.2000,hoecmpv70.na.xom.com,US2,13938,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"
+HOETSS052,0,True,"",Windows Server 2008,Service Pack 2,64-bit,10.215.25.0,HOE,4.00.6487.2000,hoecmpv70.na.xom.com,US2,13938,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"
+KULTSS051,0,True,"",Windows Server 2008,Service Pack 2,64-bit,172.19.12.0,KUL,4.00.6487.2000,kulcmpv70.ap.xom.com,ASP,13938,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"
+LHDTSS050,0,True,"",Windows Server 2008,Service Pack 2,64-bit,172.21.150.0,LHD,4.00.6487.2000,lhdcmpv70.ea.xom.com,EUP,13938,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"
+MKLTSS050,0,True,"",Windows Server 2008,Service Pack 2,64-bit,10.194.8.0,MKL,4.00.6487.2000,kulcmpv70.ap.xom.com,ASP,13938,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"
+MKLTSS051,0,True,"",Windows Server 2008,Service Pack 2,64-bit,10.194.8.0,MKL,4.00.6487.2000,kulcmpv70.ap.xom.com,ASP,13938,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"
+MKLTSS052,0,True,"",Windows Server 2008,Service Pack 2,64-bit,10.194.8.0,MKL,4.00.6487.2000,kulcmpv70.ap.xom.com,ASP,13938,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"
+SYNTSS004,0,True,"",Windows Server 2003,Service Pack 2,32-bit,142.69.7.0,SYN,4.00.6487.2000,syncmpv70.na.xom.com,CA2,9259,True,Running,OK,11,"Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}"
+UPSTSS025,0,True,"",Windows Server 2003,Service Pack 2,32-bit,10.202.17.0,UPS,4.00.6487.2000,hoecmpv70.na.xom.com,US2,9259,True,Running,OK,11,"Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}"
+UPSTSS044,0,True,"",Windows Server 2003,Service Pack 2,32-bit,10.215.153.0,UPS,4.00.6487.2000,hoecmpv70.na.xom.com,US2,6758,True,Running,OK,11,"Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}"
+UPSTSS054,0,True,"",Windows Server 2008,Service Pack 2,64-bit,10.215.153.0,UPS,4.00.6487.2000,hoecmpv70.na.xom.com,US2,10239,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"
+UPSTSS057,0,True,"",Windows Server 2008,Service Pack 2,64-bit,10.215.153.0,UPS,4.00.6487.2000,hoecmpv70.na.xom.com,US2,10239,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"
+UPSTSS500,Error: WMI root\cimv2 - -2147023174 - The RPC server is unavailable. ,,,,,,,,,,,,,,,,
+UPSTSS501,Error: WMI root\cimv2 - -2147023174 - The RPC server is unavailable. ,,,,,,,,,,,,,,,,
+UPSTSS503,Error: Site Code -2147217406 ,,,,,,,,,,,,,,,,
+YUZTSS100,0,True,"",Windows Server 2008,Service Pack 2,64-bit,10.198.43.192,YUZ,4.00.6487.2000,kulcmpv70.ap.xom.com,ASP,10239,True,Running,OK,11,"Software Metering Usage Report Cycle
+{00000000-0000-0000-0000-000000000106}
+Request & Evaluate Machine Policy
+{8EF4D77C-8A23-45c8-BEC3-630827704F51}
+Updates Source Scan Cycle
+{00000000-0000-0000-0000-000000000113}
+Request & Evaluate User Policy
+{3A88A2F3-0C39-45fa-8959-81F21BF500CE}
+Hardware Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000101}
+Software Inventory Collection Cycle
+{00000000-0000-0000-0000-000000000102}
+Software Updates Assignments Evaluation Cycle
+{00000000-0000-0000-0000-000000000108}
+Peer DP Maintenance Task
+{00000000-0000-0000-0000-000000000109}
+Discovery Data Collection Cycle
+{00000000-0000-0000-0000-000000000103}
+MSI Product Source Update Cycle
+{00000000-0000-0000-0000-000000000107}
+Standard File Collection Cycle
+{00000000-0000-0000-0000-000000000104}"

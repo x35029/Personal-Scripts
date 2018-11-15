@@ -1,0 +1,16 @@
+Microsoft (R) Windows Script Host Version 5.7
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+<<XME>>
+UPSTREAMACCTS\UPS.TS.PSC_Admin.UG === Admin
+UPSTREAMACCTS\UPS.TS.PSC_View.UG === View
+NA\NA.TS.PowerUsers.UG === Admin
+UPSTREAMACCTS\UPS.TS.PSC_SL.UG === Shadow
+
+<<GME>>
+UPSTREAMACCTS\UPS.TS.PSC_View.UG === View
+UPSTREAMACCTS\UPS.TS.PSC_Admin.UG === Admin
+NA\NA.TS.PowerUsers.UG === Admin
+UPSTREAMACCTS\UPS.TS.PSC_SL.UG === Shadow
+NA\xoLLHLOO === Admin
+

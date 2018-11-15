@@ -1,0 +1,5 @@
+Implement,PackageName,PackageManufacturer,PackageVersion,PackageLanguage,PackageComment,PackageSourcePath,PackageFolder
+Y,TestPackage01,Adobe,001,ENG,Test comment to check Test 01,\\VILO-SCCM-0001\Packages\TestPackage01,Test01
+N,TestPackage02,Microsoft,002,NLD,"Test comment to check Test 02",\\localhost\d$\Packages\TestPackage02,blabla
+Y,TestPackage03,Apple,003,FRA,Test comment to check Test 03,\\VILO-SCCM-0001\Packages\TestPackage03,Test02
+N,TestPackage04,HTC,004,GER,Test comment to check Test 04,\\localhost\d$\Packages\TestPackage04,Test03

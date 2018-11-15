@@ -1,0 +1,120 @@
+<package>
+	<job id="FarmAdminScan">
+		<runtime>
+		<description>
+			Get Farm Admins from farms.
+		</description>
+		</runtime>
+		<reference object="MetaFrameCOM.MetaFrameFarm"/>
+		<script language="VBScript">
+
+		On Error Resume Next
+
+		If WScript.Arguments.Count = 0 Then
+			' Create MetaFrameFarm object
+			Set strFarm = CreateObject("MetaFrameCOM.MetaFrameFarm")
+			If Err.Number <> 0 Then
+				WScript.Echo "Can't create MetaFrameFarm object"
+				WScript.Echo "(" & Err.Number & ") " & Err.Description
+				WScript.Echo ""
+				Err.Clear
+			End if
+
+			' Initialize the farm object.
+			strFarm.Initialize(MetaFrameWinFarmObject)
+			If Err.Number <> 0 Then
+				WScript.Echo "Can't Initialize MetaFrameFarm object"
+				WScript.Echo "(" & Err.Number & ") " & Err.Description
+				WScript.Echo ""
+				Err.Clear
+			End If
+
+			 'Are you Citrix Administrator?
+	        If strFarm.WinFarmObject.IsCitrixAdministrator = 0 then
+	            WScript.Echo "You must be a Citrix admin to run this script"
+	            WScript.Echo ""
+	            Err.Clear
+	        End If
+
+			WScript.Echo "<<" & strFarm.FarmName & ">>"
+			For Each strAdmin in strFarm.Admins
+				If strAdmin.AdminType = 1 Then
+					strPerms = "View"
+				Elseif strAdmin.AdminType = 2 Then
+					strPerms = "Shadow"
+				Else
+					strPerms = "Admin"
+				End if
+
+				If strAdmin.AccountName <> "" then
+					WScript.Echo strAdmin.AAName & "\" & strAdmin.AccountName & " === " & strPerms
+				End if
+			Next
+			WScript.Echo ""
+
+			WScript.Quit
+
+		Elseif WScript.Arguments.Count = 1 Then
+			Set WshFso = CreateObject("Scripting.FileSystemObject")
+			InputTextfile = WScript.Arguments(0)
+			Set objStream = WshFso.OpenTextFile(InputTextfile, 1)
+			Do Until objStream.AtEndOfStream
+				strComputer = objStream.ReadLine
+				'WScript.Echo strComputer
+		   		Call GetAdmins(strComputer)
+			Loop
+		End If
+
+
+		Sub GetAdmins(strComputer)
+			Set theFarm = CreateObject("MetaFrameCOM.MetaFrameFarm", strcomputer)
+	        if Err.Number <> 0 Then
+	            WScript.Echo "Can't create MetaFrameFarm object"
+	            WScript.Echo "(" & Err.Number & ") " & Err.Description
+	            WScript.Echo ""
+	            Err.Clear
+	            Exit sub
+	        End if
+	        '
+	        ' Initialize the farm object.
+	        theFarm.Initialize(MetaFrameWinFarmObject)
+	        if Err.Number <> 0 Then
+	            WScript.Echo "Can't  Initialize MetaFrameFarm object"
+	            WScript.Echo "(" & Err.Number & ") " & Err.Description
+	            WScript.Echo ""
+	            Err.Clear
+	            Exit sub
+	        End if
+	        '
+	        ' Are you Citrix Administrator?
+	        if theFarm.WinFarmObject.IsCitrixAdministrator = 0 then
+	            WScript.Echo "You must be a Citrix admin to run this script"
+	            WScript.Echo ""
+	            Err.Clear
+	            Exit sub
+	        End If
+
+			WScript.Echo "<<" & theFarm.FarmName & ">>"
+			For Each strAdmin in theFarm.Admins
+				If strAdmin.AdminType = 1 Then
+					strPerms = "View"
+				Elseif strAdmin.AdminType = 2 Then
+					strPerms = "Shadow"
+				Else
+					strPerms = "Admin"
+				End if
+
+				If strAdmin.AccountName <> "" then
+					WScript.Echo strAdmin.AAName & "\" & strAdmin.AccountName & " === " & strPerms
+				End if
+			Next
+			WScript.Echo ""
+
+		End Sub
+
+
+		</script>
+	</job>
+</package>
+
+

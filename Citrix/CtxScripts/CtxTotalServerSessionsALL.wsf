@@ -1,0 +1,230 @@
+<Package>
+	<Job id="CtxTotalServerSessionsALL">
+		<Comment>
+			File: CtxTotalServerSessionsALL.wsf
+			Author:	Kleber Carraro
+			Change History: 11/13/2011 - Script Created.
+			Requirements: WSH 5.5 or higher.
+		</comment>
+		<runtime>
+			<description>
+				Enum Total Sessions Per Server.
+			</description>
+			<example>
+				CScript //nologo CtxTotalServerSessionsALL.wsf
+			</example>
+  		</runtime>
+		<reference object="MetaFrameCOM.MetaFrameFarm"/>
+		<script language="VBScript">
+		Option Explicit
+		On Error Resume Next 'Turn error handling on
+		'On Error Goto 0 'Turn error handling off
+		
+		'
+		' Environment Setup
+		'
+		Const FOR_APPENDING = 8
+		Dim strScriptPath 	: strScriptPath = Replace(WScript.ScriptFullName, WScript.ScriptName, "")
+		Dim arrScriptName 	: arrScriptName = Split(WScript.ScriptName, ".", -1)
+		Dim strScriptName 	: strScriptName = arrScriptName(LBound(arrScriptName))  
+		Dim objFSO		: Set objFSO = CreateObject( "Scripting.FileSystemObject" )
+		Dim objShell	  	: Set objShell = WScript.CreateObject("WScript.Shell")
+		Dim objNetwork		: Set objNetwork = CreateObject("Wscript.Network")
+		Dim objNamedArguments	: Set objNamedArguments = WScript.Arguments.Named
+		Dim strLogFile		: strLogFile = FnCreateLog(strScriptName, strScriptPath)
+		Dim objLogFile		: Set objLogFile = objFSO.OpenTextFile(strLogFile, FOR_APPENDING)
+		Dim bIsLogFileEmpty
+		Dim strHeadings, strResults
+				
+		' 
+		' Functional Variables
+		'
+		Dim theFarm
+		
+		'
+		' Create MetaFrameFarm object
+		'
+		Set theFarm = CreateObject("MetaFrameCOM.MetaFrameFarm")
+		If Err.Number <> 0 Then
+			WScript.StdOut.WriteLine "Can't create MetaFrameFarm object."
+			WScript.StdOut.WriteLine "(" & Err.Number & ") " & Err.Description
+			WScript.StdOut.WriteBlankLines(1)
+			Call ObjectCleanup()			
+		Else
+			Dim strFarmName : strFarmName = theFarm.FarmName
+		End If
+		
+		'
+		' Initialize the farm object.
+		'
+		theFarm.Initialize(MetaFrameWinFarmObject)
+		If Err.Number <> 0 Then
+			WScript.StdOut.WriteLine "Can't  Initialize MetaFrameFarm object."
+			WScript.StdOut.WriteLine "(" & Err.Number & ") " & Err.Description
+			WScript.StdOut.WriteBlankLines(1)
+			Call ObjectCleanup()
+		End If
+
+		'
+		' Are you Citrix Administrator?
+		'
+		If theFarm.WinFarmObject.IsCitrixAdministrator = 0 then
+			WScript.StdOut.WriteLine "You must be a Citrix admin to run this script." 
+			WScript.StdOut.WriteBlankLines(1)
+			Call ObjectCleanup()
+		End If
+
+		'
+		' Farm Total Sessions
+		'
+		Wscript.StdOut.WriteLine("Farm Total Sessions (" & theFarm.FarmName & "): " & theFarm.Sessions.Count)
+
+		'
+		' Enum Sessios by Server
+		'
+		' Output Headings
+		strHeadings =	"Server Name" & "," & _
+				"Farm Name" & "," & _
+				"Sessions" & "," & _
+				"Date" & "," & _
+				"Weekday" & "," & _
+				"Year"  & "," & _
+				"Month"  & "," & _
+				"Day"  & "," & _
+				"Time"
+
+		' Log File Headings
+		If bIsLogFileEmpty = True Then
+			objLogFile.WriteLine strHeadings
+		End If
+
+		' Display Headings
+		WScript.StdOut.WriteBlankLines(1)
+		Call FnShowResults(strHeadings)
+
+		' Enum all object servers in the Farm
+		Dim dDate	: dDate = Now
+		Dim dtmDate	: dtmDate = CDate(Date)
+		Dim dWeekday	: dWeekday = WeekDayName(Weekday(dtmDate))
+		Dim strMonth	: strMonth = GetMonthName(Month(Now))
+		Dim dYear	: dYear = Year(Now)
+		Dim dDay	: dDay = Day(Now)
+		Dim tHour	: tHour = Hour(Now)
+		Dim aServer, aWinServer, aSession, aSessionList, iCount, iBuiltinSessions
+
+
+		'Get Total Sessions Excluding Builtin Sessions
+		For Each aServer In theFarm.Servers
+			'
+			' Builtin Sessions x Citrix Version
+			' 
+			'	XenApp: Remove 4
+			'	0 - Services
+			'	1 - Console
+			'	65536 - ICA-tcp
+			'	65537 - RDP-Tcp
+			'	
+			'	PS 4.X: Remove 3
+			'	0 - Console
+			'	65536 - ICA-tcp
+			'	65537 - RDP-Tcp
+			Set aWinServer = aServer.WinServerObject
+			Select Case aWinServer.MFWinVerMajor
+				Case 4 iBuiltinSessions = 3
+				Case 5 iBuiltinSessions = 4
+				Case Else iBuiltinSessions = 4
+			End Select 
+			Set aWinServer = Nothing
+			Set aSessionList = aServer.Sessions
+			If aSessionList.Count < iBuiltinSessions Or aSessionList.Count = 0 Then
+				iCount = 0
+			Else
+				iCount = aSessionList.Count - iBuiltinSessions
+			End If	
+			strResults =	aServer.ServerName  & "," & _
+					strFarmName & "," & _
+					iCount & "," & _
+					dDate & "," & _
+					dWeekDay & "," & _
+					strMonth & "," & _
+					dYear & "," & _
+					dDay & "," & _
+					tHour
+			objLogFile.WriteLine strResults
+			Call FnShowResults(strResults)
+			strResults = ""
+			Set aSessionList = Nothing
+		Next
+		Call ObjectCleanup()
+		WScript.StdOut.WriteBlankLines(1)
+ 		WScript.StdOut.WriteLine("Log File Created: " & strLogFile)
+
+		' 
+		' Function Object Cleanup - Clean / Delete objects created during the execution.
+		'
+		Function GetMonthName(iMonth)
+			Select Case iMonth
+				Case 1  GetMonthName = "January"
+				Case 2  GetMonthName = "February"
+				Case 3  GetMonthName = "March"
+				Case 4  GetMonthName = "April"
+				Case 5  GetMonthName = "May"
+				Case 6  GetMonthName = "June"
+				Case 7  GetMonthName = "July"		
+				Case 8  GetMonthName = "August"		
+				Case 9  GetMonthName = "September"		
+				Case 10 GetMonthName = "October"		
+				Case 11 GetMonthName = "November"		
+				Case 12 GetMonthName = "December"		
+			End Select
+		End Function
+
+		' 
+		' Function Object Cleanup - Clean / Delete objects created during the execution.
+		'
+		Function ObjectCleanup()
+			Set theFarm = Nothing
+			objLogFile.Close
+			Set objNamedArguments = Nothing
+			Set objShell = Nothing
+			Set objFSO = Nothing
+			Set objNetwork = Nothing
+			Wscript.Quit
+		End Function
+
+		'
+		' Function Create Output Log File (scriptname)
+		'
+		Function FnCreateLog(strScriptName, strScriptPath) 
+			Const FOR_READING = 1 
+			Dim strLogPath	: strLogPath = strScriptPath & "Output\"
+			Dim strLogName	: strLogName = strScriptName & ".txt"
+			Dim strMessage
+			If Not objFSO.FolderExists(strLogPath) Then
+				objFSO.CreateFolder(strLogPath)
+			End If
+			If Not objFSO.FileExists(strLogPath & strLogName) Then
+				objFSO.CreateTextFile strLogPath & strLogName
+				bIsLogFileEmpty = True
+			Else
+				Set objLogFile = objFSO.OpenTextFile(strLogPath & strLogName, FOR_READING)
+					If objLogFile.AtEndOfStream Then
+						bIsLogFileEmpty = True
+						MsgBox(1)
+					Else
+						bIsLogFileEmpty = False
+					End If
+				Set objLogFile = Nothing
+			End If
+			FnCreateLog = strLogPath & strLogName
+		End Function
+
+		'
+		' Function Show Results on Screen
+		'
+		Function FnShowResults(strContents)
+			WScript.StdOut.WriteLine strContents
+		End Function
+		</script>
+	</job>
+</package>

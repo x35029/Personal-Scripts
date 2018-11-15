@@ -1,0 +1,7 @@
+.\Get-InstalledApps-base (Get-Content ServerList.txt) | Export-CSV Apps_base.csv -notypeinformation
+
+.\Get-InstalledApps-64 (Get-Content ServerList.txt) | Export-CSV Apps_64.csv -notypeinformation
+
+.\Get-InstalledApps-base (Get-Content ServerList.txt) -appname "*.NET Framework" -matchall | Export-CSV Apps_base.csv -notypeinformation
+
+.\Get-InstalledApps-64 (Get-Content ServerList.txt) | -appname "*.NET Framework" -matchall Export-CSV Apps_64.csv -notypeinformation

@@ -1,0 +1,302 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:wsap="http://schemas.xmlsoap.org/ws/2004/08/addressing/policy" xmlns:wsa10="http://www.w3.org/2005/08/addressing" xmlns:tns="http://tempuri.org/" xmlns:msc="http://schemas.microsoft.com/ws/2005/12/wsdl/contract" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" name="ConMonServiceEvents" targetNamespace="http://tempuri.org/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsp:Policy wsu:Id="NetTcpBinding_IConMonServiceEvents_policy">
+    <wsp:ExactlyOne>
+      <wsp:All>
+        <msb:BinaryEncoding xmlns:msb="http://schemas.microsoft.com/ws/06/2004/mspolicy/netbinary1">
+        </msb:BinaryEncoding>
+        <sp:TransportBinding xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+          <wsp:Policy>
+            <sp:TransportToken>
+              <wsp:Policy>
+                <msf:WindowsTransportSecurity xmlns:msf="http://schemas.microsoft.com/ws/2006/05/framing/policy">
+                  <msf:ProtectionLevel>EncryptAndSign</msf:ProtectionLevel>
+                </msf:WindowsTransportSecurity>
+              </wsp:Policy>
+            </sp:TransportToken>
+            <sp:AlgorithmSuite>
+              <wsp:Policy>
+                <sp:Basic256>
+                </sp:Basic256>
+              </wsp:Policy>
+            </sp:AlgorithmSuite>
+            <sp:Layout>
+              <wsp:Policy>
+                <sp:Strict>
+                </sp:Strict>
+              </wsp:Policy>
+            </sp:Layout>
+          </wsp:Policy>
+        </sp:TransportBinding>
+        <wsaw:UsingAddressing>
+        </wsaw:UsingAddressing>
+      </wsp:All>
+    </wsp:ExactlyOne>
+  </wsp:Policy>
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://tempuri.org/Imports">
+      <xsd:import namespace="http://tempuri.org/" />
+      <xsd:import namespace="http://schemas.microsoft.com/2003/10/Serialization/" />
+      <xsd:import namespace="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />
+      <xsd:import namespace="http://schemas.datacontract.org/2004/07/System.ServiceProcess" />
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="IConMonServiceEvents_Subscribe_InputMessage">
+    <wsdl:part name="parameters" element="tns:Subscribe" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_Unsubscribe_InputMessage">
+    <wsdl:part name="parameters" element="tns:Unsubscribe" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_ServiceStarted_InputMessage">
+    <wsdl:part name="parameters" element="tns:ServiceStarted" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_NICEnabled_InputMessage">
+    <wsdl:part name="parameters" element="tns:NICEnabled" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_ServiceStopped_InputMessage">
+    <wsdl:part name="parameters" element="tns:ServiceStopped" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_ServicePaused_InputMessage">
+    <wsdl:part name="parameters" element="tns:ServicePaused" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_ServiceRestarted_InputMessage">
+    <wsdl:part name="parameters" element="tns:ServiceRestarted" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_DependentServicesChecked_InputMessage">
+    <wsdl:part name="parameters" element="tns:DependentServicesChecked" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_IPAddressChanged_InputMessage">
+    <wsdl:part name="parameters" element="tns:IPAddressChanged" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_NICsFound_InputMessage">
+    <wsdl:part name="parameters" element="tns:NICsFound" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_ServicePowerEvent_InputMessage">
+    <wsdl:part name="parameters" element="tns:ServicePowerEvent" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_OnServiceStarted_OutputCallbackMessage">
+    <wsdl:part name="parameters" element="tns:OnServiceStarted" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_OnNICEnabled_OutputCallbackMessage">
+    <wsdl:part name="parameters" element="tns:OnNICEnabled" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_OnServiceStopped_OutputCallbackMessage">
+    <wsdl:part name="parameters" element="tns:OnServiceStopped" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_OnServicePaused_OutputCallbackMessage">
+    <wsdl:part name="parameters" element="tns:OnServicePaused" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_OnServiceRestarted_OutputCallbackMessage">
+    <wsdl:part name="parameters" element="tns:OnServiceRestarted" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_OnDependentServicesChecked_OutputCallbackMessage">
+    <wsdl:part name="parameters" element="tns:OnDependentServicesChecked" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_OnIPAddressChanged_OutputCallbackMessage">
+    <wsdl:part name="parameters" element="tns:OnIPAddressChanged" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_OnNICsFound_OutputCallbackMessage">
+    <wsdl:part name="parameters" element="tns:OnNICsFound" />
+  </wsdl:message>
+  <wsdl:message name="IConMonServiceEvents_OnServicePowerEvent_OutputCallbackMessage">
+    <wsdl:part name="parameters" element="tns:OnServicePowerEvent" />
+  </wsdl:message>
+  <wsdl:portType name="IConMonServiceEvents">
+    <wsdl:operation name="Subscribe">
+      <wsdl:input wsaw:Action="http://tempuri.org/IConMonServiceEvents/Subscribe" message="tns:IConMonServiceEvents_Subscribe_InputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="Unsubscribe">
+      <wsdl:input wsaw:Action="http://tempuri.org/IConMonServiceEvents/Unsubscribe" message="tns:IConMonServiceEvents_Unsubscribe_InputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="ServiceStarted">
+      <wsdl:input wsaw:Action="http://tempuri.org/IConMonServiceEvents/ServiceStarted" message="tns:IConMonServiceEvents_ServiceStarted_InputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="NICEnabled">
+      <wsdl:input wsaw:Action="http://tempuri.org/IConMonServiceEvents/NICEnabled" message="tns:IConMonServiceEvents_NICEnabled_InputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="ServiceStopped">
+      <wsdl:input wsaw:Action="http://tempuri.org/IConMonServiceEvents/ServiceStopped" message="tns:IConMonServiceEvents_ServiceStopped_InputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="ServicePaused">
+      <wsdl:input wsaw:Action="http://tempuri.org/IConMonServiceEvents/ServicePaused" message="tns:IConMonServiceEvents_ServicePaused_InputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="ServiceRestarted">
+      <wsdl:input wsaw:Action="http://tempuri.org/IConMonServiceEvents/ServiceRestarted" message="tns:IConMonServiceEvents_ServiceRestarted_InputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="DependentServicesChecked">
+      <wsdl:input wsaw:Action="http://tempuri.org/IConMonServiceEvents/DependentServicesChecked" message="tns:IConMonServiceEvents_DependentServicesChecked_InputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="IPAddressChanged">
+      <wsdl:input wsaw:Action="http://tempuri.org/IConMonServiceEvents/IPAddressChanged" message="tns:IConMonServiceEvents_IPAddressChanged_InputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="NICsFound">
+      <wsdl:input wsaw:Action="http://tempuri.org/IConMonServiceEvents/NICsFound" message="tns:IConMonServiceEvents_NICsFound_InputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="ServicePowerEvent">
+      <wsdl:input wsaw:Action="http://tempuri.org/IConMonServiceEvents/ServicePowerEvent" message="tns:IConMonServiceEvents_ServicePowerEvent_InputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="OnServiceStarted">
+      <wsdl:output wsaw:Action="http://tempuri.org/IConMonServiceEvents/OnServiceStarted" message="tns:IConMonServiceEvents_OnServiceStarted_OutputCallbackMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="OnNICEnabled">
+      <wsdl:output wsaw:Action="http://tempuri.org/IConMonServiceEvents/OnNICEnabled" message="tns:IConMonServiceEvents_OnNICEnabled_OutputCallbackMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="OnServiceStopped">
+      <wsdl:output wsaw:Action="http://tempuri.org/IConMonServiceEvents/OnServiceStopped" message="tns:IConMonServiceEvents_OnServiceStopped_OutputCallbackMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="OnServicePaused">
+      <wsdl:output wsaw:Action="http://tempuri.org/IConMonServiceEvents/OnServicePaused" message="tns:IConMonServiceEvents_OnServicePaused_OutputCallbackMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="OnServiceRestarted">
+      <wsdl:output wsaw:Action="http://tempuri.org/IConMonServiceEvents/OnServiceRestarted" message="tns:IConMonServiceEvents_OnServiceRestarted_OutputCallbackMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="OnDependentServicesChecked">
+      <wsdl:output wsaw:Action="http://tempuri.org/IConMonServiceEvents/OnDependentServicesChecked" message="tns:IConMonServiceEvents_OnDependentServicesChecked_OutputCallbackMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="OnIPAddressChanged">
+      <wsdl:output wsaw:Action="http://tempuri.org/IConMonServiceEvents/OnIPAddressChanged" message="tns:IConMonServiceEvents_OnIPAddressChanged_OutputCallbackMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="OnNICsFound">
+      <wsdl:output wsaw:Action="http://tempuri.org/IConMonServiceEvents/OnNICsFound" message="tns:IConMonServiceEvents_OnNICsFound_OutputCallbackMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="OnServicePowerEvent">
+      <wsdl:output wsaw:Action="http://tempuri.org/IConMonServiceEvents/OnServicePowerEvent" message="tns:IConMonServiceEvents_OnServicePowerEvent_OutputCallbackMessage" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="NetTcpBinding_IConMonServiceEvents" type="tns:IConMonServiceEvents">
+    <wsp:PolicyReference URI="#NetTcpBinding_IConMonServiceEvents_policy">
+    </wsp:PolicyReference>
+    <soap12:binding transport="http://schemas.microsoft.com/soap/tcp" />
+    <wsdl:operation name="Subscribe">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/Subscribe" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+    </wsdl:operation>
+    <wsdl:operation name="Unsubscribe">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/Unsubscribe" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+    </wsdl:operation>
+    <wsdl:operation name="ServiceStarted">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/ServiceStarted" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+    </wsdl:operation>
+    <wsdl:operation name="NICEnabled">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/NICEnabled" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+    </wsdl:operation>
+    <wsdl:operation name="ServiceStopped">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/ServiceStopped" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+    </wsdl:operation>
+    <wsdl:operation name="ServicePaused">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/ServicePaused" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+    </wsdl:operation>
+    <wsdl:operation name="ServiceRestarted">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/ServiceRestarted" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+    </wsdl:operation>
+    <wsdl:operation name="DependentServicesChecked">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/DependentServicesChecked" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+    </wsdl:operation>
+    <wsdl:operation name="IPAddressChanged">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/IPAddressChanged" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+    </wsdl:operation>
+    <wsdl:operation name="NICsFound">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/NICsFound" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+    </wsdl:operation>
+    <wsdl:operation name="ServicePowerEvent">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/ServicePowerEvent" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+    </wsdl:operation>
+    <wsdl:operation name="OnServiceStarted">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/OnServiceStarted" style="document" />
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="OnNICEnabled">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/OnNICEnabled" style="document" />
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="OnServiceStopped">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/OnServiceStopped" style="document" />
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="OnServicePaused">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/OnServicePaused" style="document" />
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="OnServiceRestarted">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/OnServiceRestarted" style="document" />
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="OnDependentServicesChecked">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/OnDependentServicesChecked" style="document" />
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="OnIPAddressChanged">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/OnIPAddressChanged" style="document" />
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="OnNICsFound">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/OnNICsFound" style="document" />
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="OnServicePowerEvent">
+      <soap12:operation soapAction="http://tempuri.org/IConMonServiceEvents/OnServicePowerEvent" style="document" />
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="ConMonServiceEvents">
+    <wsdl:port name="NetTcpBinding_IConMonServiceEvents" binding="tns:NetTcpBinding_IConMonServiceEvents">
+      <soap12:address location="net.tcp://localhost:8523/ConMonServiceEvents/ConMonServiceEvents" />
+      <wsa10:EndpointReference>
+        <wsa10:Address>net.tcp://localhost:8523/ConMonServiceEvents/ConMonServiceEvents</wsa10:Address>
+        <Identity xmlns="http://schemas.xmlsoap.org/ws/2006/02/addressingidentity">
+          <Dns>localhost</Dns>
+        </Identity>
+      </wsa10:EndpointReference>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

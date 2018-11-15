@@ -1,0 +1,291 @@
+<Package>
+	<Job id="CtxEnumServers">
+		<Comment>
+			File: CtxEnumServers.Wsf
+			Author:	Kleber Carraro
+			Change History: 11/13/2011 - Script Created.
+		</comment>
+		<runtime>
+			<description>
+				Enum Servers by Citrix Farm
+			</description>
+			<example>
+				CScript //nologo CtxEnumServers.Wsf
+			</example>
+  		</runtime>
+		<reference object="MetaFrameCOM.MetaFrameFarm"/>
+		<script language="VBScript">
+		Option Explicit
+
+		'
+		' Debug Handler - Ref: http://technet.microsoft.com/en-us/library/ee156618.aspx
+		'
+		Public DEBUGMODE
+		If WScript.Arguments.Count = 1 Then
+			If WScript.Arguments.Item(0) = "" OR UCASE(WScript.Arguments.Item(0)) <> "DEBUG" Then
+				DEBUGMODE = False
+			ElseIf UCase(WScript.Arguments.Item(0)) = "DEBUG" Then
+				WScript.Arguments.Item(0) 
+				DEBUGMODE = True
+			End If
+		Else
+			DEBUGMODE = False
+		End If
+		WScript.StdOut.WriteLine("Debug Mode: " & DEBUGMODE)
+		If DEBUGMODE = False Then
+			On Error Resume Next
+		Else
+			On Error Goto 0
+		End If
+
+		'
+		' Environment Setup
+		'
+		Const FOR_APPENDING = 8
+		Dim strScriptPath 	: strScriptPath = Replace(WScript.ScriptFullName, WScript.ScriptName, "")
+		Dim arrScriptName 	: arrScriptName = Split(WScript.ScriptName, ".", -1)
+		Dim strScriptName 	: strScriptName = arrScriptName(LBound(arrScriptName))  
+		Dim objFSO		: Set objFSO = CreateObject( "Scripting.FileSystemObject" )
+		Dim objShell	  	: Set objShell = WScript.CreateObject("WScript.Shell")
+		Dim objNetwork		: Set objNetwork = CreateObject("Wscript.Network")
+		Dim objNamedArguments	: Set objNamedArguments = WScript.Arguments.Named
+		Dim strCurrentDate	: strCurrentDate =  Month(Date) & "-" & Day(Date) & "-" & Year(Date) & "_" & Replace(Left(Time,8),":","-")
+		Dim strLogFile		: strLogFile = FnCreateLog(strScriptName, strScriptPath, objNetwork.ComputerName, objNetwork.UserName, strCurrentDate)
+		Dim objLogFile		: Set objLogFile = objFSO.OpenTextFile(strLogFile, FOR_APPENDING)
+		Dim strHeadings, strResults
+				
+		' 
+		' Functional Variables
+		'
+		Dim theFarm
+
+		'
+		' Create MetaFrameFarm object
+		'
+		Err.Clear
+		Set theFarm = CreateObject("MetaFrameCOM.MetaFrameFarm")
+		If Err.Number <> 0 Then
+			WScript.StdOut.WriteLine "Can't create MetaFrameFarm object."
+			WScript.StdOut.WriteLine "(" & Err.Number & ") " & Err.Description
+			WScript.StdOut.WriteBlankLines(1)
+			Call ObjectCleanup()
+		End If
+		
+		'
+		' Initialize the farm object.
+		'
+		Err.Clear
+		theFarm.Initialize(MetaFrameWinFarmObject)
+		If Err.Number <> 0 Then
+			WScript.StdOut.WriteLine "Can't  Initialize MetaFrameFarm object."
+			WScript.StdOut.WriteLine "(" & Err.Number & ") " & Err.Description
+			WScript.StdOut.WriteBlankLines(1)
+			Call ObjectCleanup()
+		End If
+
+		'
+		' Are you Citrix Administrator?
+		'
+		If theFarm.WinFarmObject.IsCitrixAdministrator = 0 then
+			WScript.StdOut.WriteLine "You must be a Citrix admin to run this script." 
+			WScript.StdOut.WriteBlankLines(1)
+			Call ObjectCleanup()
+		End If
+
+		'
+		' Output Headings
+		'
+		strHeadings = 	"Server Name" & "," & _ 
+				"Server Type" & "," & _ 
+				"Server DS/US" & "," & _
+				"Server Location" & "," & _
+				"Server DN"  & "," & _ 
+				"Farm Name"
+
+		' Log File Headings		
+		objLogFile.WriteLine strHeadings
+
+		'Display Headings
+		WScript.StdOut.WriteBlankLines(1)
+		Call FnShowResults(strHeadings)
+
+		'
+		' Initialize Server Object.
+		'
+		Err.Clear
+		Dim aServer : Set aServer = theFarm.Servers
+		If Err.Number <> 0 Then
+			WScript.StdOut.WriteLine "Can't Initialize Citrix Server object."
+			WScript.StdOut.WriteLine "(" & Err.Number & ") " & Err.Description
+			WScript.StdOut.WriteBlankLines(1)
+			Call ObjectCleanup()
+		End If
+
+		'
+		' Display all servers in the farm.
+		'
+		For Each aServer In theFarm.Servers
+			Dim strServerName : strServerName = aServer.ServerName
+			'WScript.StdOut.WriteLine "Server: " & strServerName
+			Dim strServerType
+			Select Case True
+				'XME - Non-standard naming convention - Published Application contains "LEGACY"
+				Case InStr("'BDPTSS003','BRRTSS002','CALTSS004','CSSTSS003', 'CTBTSS100','DALTSS007'," & _
+					   "'DALTSS008','DALTSS009','ESHTSS007','ESHTSS008','FRSTSS003','HNOTSS003'," & _
+					   "'HOETSS015','HOETSS016','HOETSS017','KULTSS004','LAGTSS006','LFDTSS006'," & _
+					   "'UPSTSS043','LUATSS001','MACTSS006','MELTSS002','MKLTSS004','QITTSS005'," & _
+					   "'QOATSS004','SNGTSS003','SNGTSS004','TADTSS003','UPSTSS016','UPSTSS040'," & _
+					   "'UPSTSS041','UPSTSS042'",UCase(strServerName)) > 0 
+					strServerType = "General Purpose - Legacy"
+				'XME - Non-standard naming convention - Published Application contains "DESKTOP"
+				Case InStr("'HOETSS028','HOETSS026','HOETSS025','HOETSS027','UPSTSS044','UPSTSS037'," & _
+					   "'UPSTSS039','UPSTSS035','UPSTSS036','UPSTSS033','UPSTSS034','UPSTSS038'," & _
+					   "'UPSTSS031','UPSTSS027','UPSTSS028','UPSTSS029','UPSTSS030','UPSTSS025'," & _
+					   "'UPSTSS024','UPSTSS026','UPSTSS023','UPSTSS032'",UCase(strServerName)) > 0
+					strServerType = "General Purpose"
+				'XME - Non-standard naming convention - Published Application contains "APPLICATION NAME"
+				Case InStr("'UPSTSS045','UPSTSS046','HOETSS024','HOETSS020','HOETSS021','HOETSS023'," & _
+					   "'HOETSS022','XDUSTSS001','DALTSS020','DALTSS021','DALTSS022','DALTSS023',", _
+					   UCase(strServerName)) > 0
+					strServerType = "Application Specific"
+				'GME - Non-standard naming convention - Published Application contains "DESKTOP"
+				Case InStr("'UPSTSS063','UPSTSS064','UPSTSS062','UPSTSS061','CALTSS061','CALTSS060',", _
+					   UCase(strServerName)) > 0
+					strServerType = "General Purpose"
+				Case Mid(strServerName,7,2) = "00"
+					strServerType = "General Purpose"
+				Case Mid(strServerName,7,2) = "01"
+					strServerType = "General Purpose"
+				Case Mid(strServerName,7,2) = "05"
+					strServerType = "General Purpose"
+				Case Mid(strServerName,7,1) = "1"
+					strServerType = "Application Specific"
+				Case Mid(strServerName,7,1) = "2"
+					strServerType = "Application Specific"
+				Case Mid(strServerName,7,1) = "3"
+					strServerType = "Zone Data Collector"
+				Case Mid(strServerName,7,1) = "4"
+					strServerType = "Infrastructure"
+				Case Mid(strServerName,7,1) = "5"
+					strServerType = "Application Specific"
+				Case Mid(strServerName,7,1) = "6"
+					strServerType = "Packaging / Delivery"
+				Case Mid(strServerName,7,1) = "7"
+					strServerType = "Engineering"
+				Case Else
+					strServerType = "Unknown"
+			End Select
+			Dim strServerDSUS : strServerDSUS = SplitServerDN(aServer.ParentFolderDN,1)
+			Dim strServerLocation : strServerLocation = SplitServerDN(aServer.ParentFolderDN,2)
+			Dim strServerDN	: strServerDN = aServer.ParentFolderDN
+			Dim strFarmName : strFarmName = theFarm.FarmName
+
+			'Send results to output file.
+			strResults =	strServerName & "," & _
+					strServerType & "," & _
+					strServerDSUS & "," & _
+					strServerLocation & "," & _
+					strServerDN & "," & _					
+					strFarmName
+			objLogFile.WriteLine strResults
+			'Show results on the screen.
+			Call FnShowResults(strResults)
+			strResults = ""
+		Next
+		'Cleanup objects
+		WScript.StdOut.WriteBlankLines(1)
+ 		WScript.StdOut.WriteLine("Log File Created: " & strLogFile)
+ 		Call ObjectCleanup()
+
+		' 
+		' Function Split Server DistinhuishedName into Downstream / Upstream
+		'
+		Function SplitServerDN(parServerDN,intSlice)
+			If InStr(parServerDN,"/") > 0 Then
+				Dim arrServerDN : arrServerDN = Split(parServerDN, "/",-1,1)
+				If UBound(arrServerDN) >= intSlice Then
+					SplitServerDN = arrServerDN(intSlice)
+				Else
+					SplitServerDN = "Unknown"
+				End If
+			Else
+				SplitServerDN = "Unknown"
+			End If
+		End Function
+		
+		' 
+		' Function Object Cleanup - Clean / Delete objects created during the execution.
+		'
+		Function ObjectCleanup()
+			Set theFarm = Nothing
+			objLogFile.Close
+			Set objNamedArguments = Nothing
+			Set objShell = Nothing
+			Set objFSO = Nothing
+			Set objNetwork = Nothing
+			Wscript.Quit
+		End Function
+
+
+		' 
+		' Function Open Input File
+		'
+		Function OpenInputFile(strInputFile)
+			On Error Goto 0
+			Const FOR_READING = 1
+			If Not objFSO.FileExists(strInputFile) Then
+				WScript.StdOut.WriteLine("ERROR: " & "Input file " & strInputFile & " does not exist, aborting script.")
+				Wscript.Quit
+			Else
+				Dim objInputFile : Set objInputFile = objFSO.OpenTextFile(strInputFile, FOR_READING)
+				If objInputFile.AtEndOfStream Then
+					WScript.StdOut.WriteLine("ERROR: " & "Input file: " & strInputFile & " is empty, aborting script.")
+					Wscript.Quit
+				Else
+					Dim arrInputItems : arrInputItems = Split(objInputFile.ReadAll, vbNewLine)
+					OpenInputFile = arrInputItems
+					objInputFile.Close
+				End If
+				Set objInputFile = Nothing
+			End If
+		End Function
+
+		
+		' 
+		' Function Create Output Log File <scriptname.csv>
+		'
+		Function FnCreateLog(strScriptName, strScriptPath, strComputerName, strUserName, strCurrentDateTime) 
+			Dim strLogPath	: strLogPath = strScriptPath & "Output\"
+			Dim strLogName	: strLogName = strScriptName & "_" & UCase(strComputerName) & "_" & UCase(strUserName) & "_" & strCurrentDateTime & ".csv"
+			Dim strMessage
+			If Not objFSO.FolderExists(strLogPath) Then
+				objFSO.CreateFolder(strLogPath)
+			End If
+			Err.Clear
+			On Error Resume Next
+			If objFSO.FileExists(strLogPath & strLogName) Then
+				objFSO.DeleteFile strLogPath & strLogName, 1
+			End If
+			' File is locked - Opened in Excel
+			'MsgBox(Err.Number)
+			If Err.Number = 70 Then
+				strMessage = "Log file: " & strLogPath & strLogName & " is already opened, close it before proceed."
+				MsgBox strMessage, 16, "Error"
+				Call FnCreateLog(strScriptName, strScriptPath, strUserName)
+			Else
+				objFSO.CreateTextFile strLogPath & strLogName
+			End If
+			FnCreateLog = strLogPath & strLogName
+		End Function
+
+
+		'
+		' Function Show Results on Screen
+		'
+		Function FnShowResults(strContents)
+			'strContents = Replace(strContents,",",vbTab)
+			WScript.StdOut.WriteLine strContents
+		End Function
+		</script>
+	</job>
+</package>

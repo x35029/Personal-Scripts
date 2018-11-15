@@ -1,0 +1,9 @@
+Get-Service -name bits -computer client1
+Invoke-Command -computer Server1 {Get-Process -name idle}
+Get-EventLog -Logname application -newest 1
+Invoke-Command -computer server1 -ScriptBlock {Get-Date}
+Get-Date
+
+
+
+

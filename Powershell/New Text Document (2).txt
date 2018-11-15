@@ -1,0 +1,154 @@
+function Create-EventLog {
+<# ====================================================================================================================
+    SYNOPSIS: Creates an Event Viewer $log Source with $source
+    
+    PARAM
+        =>$log -> STRING
+        =>$source -> STRING            
+    
+    RETURNVALUE
+        3001 -> Event Viewer LOG Created
+        3002 -> Event Viewer SOURCE Created
+        4002 -> Event Viewer LOG already exists
+        4003 -> Event Viewer SOURCE already exists
+        5001 -> Unable to create Event Viewer LOG        
+        5002 -> Unable to create Event Viewer SOURCE           
+    
+    LOCAL VARIABLES
+        $errorCode = Local Error Code
+        $logFileExists = Receives boolean if log exists or not  (uses .NET)
+        $sourceExists = Receives boolean if source exists or not (uses .NET)
+
+#>    
+    [CmdletBinding()]
+    param(
+        [parameter(
+            Position=0,
+            Mandatory=$true
+        )]
+        [ValidateNotNullOrEmpty()]
+        [string]$log,
+        [parameter(
+            Position=1,
+            Mandatory=$true
+        )]
+        [ValidateNotNullOrEmpty()]
+        [string]$source       
+    )
+    Write-Verbose "Checking if Log:<$log> and Source:<$source> exist"
+    $logFileExists = [System.Diagnostics.EventLog]::Exists($log)
+    if (!$logFileExists) {  
+        Write-Verbose "Log:<$log> doesn't exist"                
+        try{
+            Write-Verbose "Trying to create Log:<$log>"
+            New-Eventlog -LogName $log -source $source -ErrorAction Stop
+            Write-EventLog -LogName $log -source $source -EntryType Information -EventId 3001 -Message "Event Log created" 
+            Write-Verbose "Log:<$log> created"
+            # 3001 -> Event Viewer LOG Created
+            $errorCode = 3001            
+        }
+        catch{
+            Write-Verbose "Failed to create Log:<$log>"
+            # 5001 -> Unable to create Event Viewer LOG        
+            $errorCode = 5001
+            return $errorCode                        
+        }
+    }
+    else {
+        Write-Verbose "Log:<$log> already exists"
+        # 4002 -> Event Viewer LOG already exist
+        $errorCode = 4002        
+    }
+    $sourceExists = [System.Diagnostics.EventLog]::SourceExists($source)
+    if(!$sourceExists){
+        Write-Verbose "Source:<$source> doesn't exist"  
+        try{
+            Write-Verbose "Trying to create Source:<$source> in log:<$log>"
+            New-Eventlog -LogName $log -source $source -ErrorAction Stop
+            Write-Verbose "Source:<$source> created in Log:<$log>"
+            # 3002 -> Event Viewer SOURCE Created
+            $errorCode = 3002
+            return $errorCode
+        }
+        catch{
+            Write-Verbose "Failed to create Log:<$log>"
+            # 5002 -> Unable to create Event Viewer SOURCE           
+            $errorCode = 5002
+            return $errorCode
+        }
+    }
+    else {
+        Write-Verbose "Source:<$source> already exists"
+        # 4003 -> Event Viewer SOURCE already exist
+        $errorCode = 4003   
+        return $errorCode    
+    }      
+}
+
+function Write-CustomEventLog {   
+<#  ===================================================================================================================
+    SYNOPSIS: Writes to EventViwer an entry
+    PARAM
+        $log     -> STRING 
+        $source  -> STRING 
+        $eventID -> STRING
+        $type    -> STRING
+        $message -> STRING
+    RETURNVALUE
+        5003 -> Unable to write to  EventLog
+        3003 -> Wrote to Eventlog
+    LOCAL VARIABLES
+        $errorCode = Local Error Code
+#> 
+    [CmdletBinding()]
+    param(
+        [parameter(
+            Position=0,
+            Mandatory=$true
+        )]
+        [ValidateNotNullOrEmpty()]
+        [string]$log,
+        [parameter(
+            Position=1,
+            Mandatory=$true
+        )]
+        [ValidateNotNullOrEmpty()]
+        [string]$source,
+        [parameter(
+            Position=2,
+            Mandatory=$true
+        )]
+        [ValidateNotNullOrEmpty()]
+        [string]$eventID,
+        [parameter(
+            Position=3,
+            Mandatory=$true
+        )]
+        [ValidateNotNullOrEmpty()]
+        [ValidateSet(   “SuccessAudit",
+                        "Error",
+                        "FailureAudit",
+                        "Information",
+                        "Warning")]
+        [string]$type,
+        [parameter(
+            Position=4,
+            Mandatory=$true
+        )]
+        [ValidateNotNullOrEmpty()]
+        [string]$message      
+    )
+    Write-Verbose "Creating new Event"
+    try{
+        Write-EventLog -LogName $log -Source $source -EventID $eventID -EntryType $type -Message $message -ErrorAction SilentlyContinue
+    }
+    catch{
+        # 5502 -> Unable to write to  EventLog
+        Write-Verbose "Error while creating new Event"
+        $errorCode = 5502
+        return $errorCode 
+    } 
+    # 3303 -> Wrote to Eventlog
+    $errorCode = 3303
+    return $errorCode 
+}

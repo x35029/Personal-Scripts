@@ -1,0 +1,6 @@
+Implement,PackageName,ProgramName,ProgramComment,ProgramFlags,CommandLine
+Y,TestPackage02,Prrogrram01t,This is the first test,135308289,msiexec /i test.msi /qb-!
+N,TestPackage02,Prrogrram02t,This is the second test,135308289,powershell.exe -executionpolicy bypass -command .\test.ps1
+Y,TestPackage04,Prrogrram03t,This is the third test,135308289,msiexec /i testting.msi /qb-!
+Y,TestPackage01,Prrogrram04t,This is the fourth test,135308289,msiexec /i test.msi /qb-!
+Y,TestBlablabla,Prrogrram04t,This is the fifth test,135308289,msiexec /i test.msi transforms=test.mst /qb-!

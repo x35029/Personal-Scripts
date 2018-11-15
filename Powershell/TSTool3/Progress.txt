@@ -1,0 +1,210 @@
+The code is stable but under active development.
+Please check for updates.
+
+
+
+
+
+
+
+### History ###
+
+TSTool3.1.4
+check for DNS issue when connecting to remote machine
+Add remove programs code improvement
+Dell warranty code fix to accomodate new Dell web site
+
+
+TSTool3.1.1 (major release update)
+Added Filtered software report options
+Added separate GUI to maintain software filter list. (launch GUI from options menu)
+Removed run as admin option. Script now must run as admin in order to work. 
+Get-SCCMSoftwareInstalled - improved remove duplicates. 
+AD photo and disconnect button will grey out when disconnect button pressed. 
+Default dummy photo will display when user logged in and no photo set in AD
+Fixed bug with screen width detection warning
+Simplified GlobalSettings.csv - script now only supports one SCCM server environment
+Increased WMI timeout to 10 secs
+Fixed bug detecting screensaver
+Logon user - in case of servers or switched users, will now return last active user rather than one at random. 
+Live software reports now return IE version also
+Removed SCCM 2007 web reports button
+
+
+TSTool3.0.27
+Input IP is resolved to computer name in results
+Tidied up computer name logic
+
+
+TSTool3.0.26
+Added button - Launch SCCM Configuration Manager console
+Added button - Display App-V application list
+Added button - Display "Filtered" SCCM application list
+Add-on script that generates the software filter
+
+
+TSTool3.0.25
+Fine tune WOL logic
+
+
+TSTool3.0.24
+Added wake on lan over subnet
+
+
+TSTool3.0.23
+Added find user's active computers by examining open files on profile server 
+
+
+TSTool3.0.22
+Added SCCM User 2 Computer lookup function
+
+
+TSTool3.0.21
+Minor tweaks - changed output order of ipconfig - button arrangement etc.
+Connected SW2 button to SCCM 2007 report
+
+
+TSTool3.0.20
+Add support to read from the registry - 32bit apps installed on 64bit OS
+(note this does not work if TSTool3 is running from a 32bit machine) 
+
+
+TSTool3.0.19
+Add Email Button 
+Add support for "Tool Tips" (Text that displays when you hover over over controls)
+
+
+TSTool3.0.18
+Add Support for listing installed Windows8 style 'Modern Apps'
+tweak domain detection for Windows8 host machines
+
+
+TSTool3.0.17
+Added update check button - checks to see if a new version is available. 
+Tweaked user property retrieval from AD
+Added basic OS check to prevent script running from anything less than Windows7
+
+
+TSTool3.0.16
+autocomplete input box now updates after history updates instead if app restart
+Added history limit to options menu
+
+
+TSTool3.0.15
+Tweaked STA mode - Added code to fix old shortcuts and prevent errors if not STA
+
+
+TSTool3.0.14
+Fixed name input box autocomplete issue - required STA mode
+Updated installed script to include STA mode and STA mode on all applicable other placed
+made autocomplete list disappear after connecting - quick and dirty (added keypress escape)
+moved history x clear button to options menu
+removed old history drop down now that autocomplete works really well
+New top line of GUI looks really clean now. 
+
+
+TSTool3.0.13
+Fixed history overwriting user name with 'no user' when user logs off
+Name input box now autocompletes
+
+
+TSTool3.0.12
+Fixed Monitor properties script - displays properties corectly
+
+
+TSTool3.0.11
+more windows8 Tweaks 
+many other minor items including
+Check screen resolution is large enough.
+Tweaked the monitor script, still does not return all properties (unresolved bug)
+Tweaked the IP function - did not return an ip in some cases resulting in no subnet returned
+
+
+TSTool3.0.10
+Some minor Updates to work with windows8
+
+
+TSTool3.0.9
+enable / disable Queensland phone number filter to make script generic
+Add Licence menu item (MS-PL) applied
+Removed hardcoded SCCM server details and moved to external configuration file
+added yellow header writing for reboot, shutdown and logoff commands
+SCCM SW3 - filter out duplicates
+Updated disconnect button code - was not re-enabling buttons and default cursor
+
+
+TSTool3.0.8 
+change monitor 'button' lable to 'monitor(s)'
+turning on runas on via option menu - popup offer restart
+
+TSTool3.0.7
+Developed custom Install script
+when canceling runas or when runas fails, remember current runas preference
+Warning message is delivered when not running as admin
+change darkgreen colour used in console header yellow
+Move home and profile buttons to user tab
+ 
+TSTool3.0.6
+Optimised Check Admin Code 
+Tweaked runas features
+ 
+TSTool3.0.5
+Redesigned layout of Software page
+Added live win32_product software + A-R-P software buttons
+Place holder buttons for SCCM 2012 software features
+specific buttons for SCCM 2007 software features
+ 
+TSTool3.0.4
+prevent runas entering endless loop when host machine does not support runas (citrix servers)
+Improved runas logic generaly
+Added connection date to History
+ 
+TSTool3z-z 3.0.3 
+GPupdate function - now just returns success or fail. 
+processes button - displays process name and cmd line  
+display email of user
+if remote machine is not locked - report screensaver status
+ 
+TSTool3z-x 3.0.2
+Make console dark, same colors as standard ps console
+copy console button
+clear screen automatically before each function outputed to console
+APP Launch - add cmd.exe, powershell, mstsc.exe, powershell with remote access to specific machine.
+App Launch - move Manage + SysInfo to this tab
+check if machine has PS-Remoting enabled and if not launch powershell.exe instead of PSRemote
+ 
+TSTool3z-W 3.0.1 
+wol only works on current subnet - Popup informs user.
+cls button to clear console 
+Move console back into main GUI and remove error log box.
+raise location lable
+Remove option - CSV location 
+Edit runas option display, just have a tick in menu.
+
+TSTool3z 3.0.0 
+Built script up to a usable state and TSTool3 is born
+
+
+
+
+
+
+
+
+### TO DO (wish list) ### 
+
+processes button - display process start time  
+
+check OU button - "No User account not found in AD reported when "no user" logged in.  
+
+OS check before starting - TSTool supports only server 2008r2 and windows 7
+
+history overwrites if multiple copies of the script are opened - maybe add read from csv before write back
+
+Uninstall button - remove current user registry settings and history temp file and icon.  
+
+add tooltip to coloured connection square - maybe add option to turn tool tips off
+
+SCCM remote control button
+
+

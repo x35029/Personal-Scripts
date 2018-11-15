@@ -1,0 +1,151 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{A4475A33-E6B5-4386-A209-2BD5769F9C7D}"
+	ProjectSection(SolutionItems) = preProject
+		ConMon.targets = ConMon.targets
+		ConnectionMonitorEULA.rtf = ConnectionMonitorEULA.rtf
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{81C71689-C792-46DE-AE77-330D4092F8D4}"
+	ProjectSection(SolutionItems) = preProject
+		CodeSign.targets = CodeSign.targets
+		SuiteAssemblyVersion.cs = SuiteAssemblyVersion.cs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EL", "EL", "{B8F8039A-5F0A-4CB2-A8CF-BD4AAA57477D}"
+	ProjectSection(SolutionItems) = preProject
+		EL\Microsoft.Practices.EnterpriseLibrary.Common.dll = EL\Microsoft.Practices.EnterpriseLibrary.Common.dll
+		EL\Microsoft.Practices.EnterpriseLibrary.Configuration.Design.dll = EL\Microsoft.Practices.EnterpriseLibrary.Configuration.Design.dll
+		EL\Microsoft.Practices.EnterpriseLibrary.Logging.Configuration.Design.dll = EL\Microsoft.Practices.EnterpriseLibrary.Logging.Configuration.Design.dll
+		EL\Microsoft.Practices.EnterpriseLibrary.Logging.dll = EL\Microsoft.Practices.EnterpriseLibrary.Logging.dll
+		EL\Microsoft.Practices.ObjectBuilder2.dll = EL\Microsoft.Practices.ObjectBuilder2.dll
+		EL\Microsoft.Practices.Unity.dll = EL\Microsoft.Practices.Unity.dll
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.NetworkInterfaceControl", "Microsoft.NetworkInterfaceControl\Microsoft.NetworkInterfaceControl.csproj", "{76AFCAF4-FF4C-4E17-BB22-46C796CFE9F6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConnectionMonitor.Service", "ConnectionMonitor.Service\ConnectionMonitor.Service.csproj", "{FC06F32A-9E43-44AA-854F-0D33E13B77FB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DD36C532-4DFD-4546-8A68-45BA2B4320EC} = {DD36C532-4DFD-4546-8A68-45BA2B4320EC}
+	EndProjectSection
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup", "Setup\Setup.vdproj", "{8D1C478E-7B02-4A03-8D04-25EA39C0ACC4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SetupProjects", "SetupProjects", "{C39663D5-0E10-47AD-90E2-7149DC93F1A4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DevCon", "DevCon", "{71EE6331-C507-46E3-A0E2-5BFA4C67B93D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "amd64", "amd64", "{D77BF999-98BE-4AD1-9549-2C4CFC120F35}"
+	ProjectSection(SolutionItems) = preProject
+		DevCon\amd64\devcon.exe = DevCon\amd64\devcon.exe
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "i386", "i386", "{02804D9C-BC29-41C2-98D9-759A0B6DBAA3}"
+	ProjectSection(SolutionItems) = preProject
+		DevCon\i386\devcon.exe = DevCon\i386\devcon.exe
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConMonServiceEventsWCF", "ConMonServiceEventsWCF\ConMonServiceEventsWCF.csproj", "{DD36C532-4DFD-4546-8A68-45BA2B4320EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConMon.Admin", "ConMon.Admin\ConMon.Admin.csproj", "{BE7CF21B-951B-4DE2-ACC2-9BBBE1FC9C8A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentation", "{BF63DA44-4704-41DF-8824-3E21DFC5CF45}"
+	ProjectSection(SolutionItems) = preProject
+		Documentation\Help\Connection Monitor Code Documentation.chm = Documentation\Help\Connection Monitor Code Documentation.chm
+		Documentation\Connection Monitor.shfbproj = Documentation\Connection Monitor.shfbproj
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(TeamFoundationVersionControl) = preSolution
+		SccNumberOfProjects = 6
+		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
+		SccTeamFoundationServer = https://vstf-us-wa-05.partners.extranet.microsoft.com:8443/tfs/ext05
+		SccLocalPath0 = .
+		SccProjectUniqueName1 = ConnectionMonitor.Service\\ConnectionMonitor.Service.csproj
+		SccProjectName1 = ConnectionMonitor.Service
+		SccLocalPath1 = ConnectionMonitor.Service
+		SccProjectUniqueName2 = Microsoft.NetworkInterfaceControl\\Microsoft.NetworkInterfaceControl.csproj
+		SccProjectName2 = Microsoft.NetworkInterfaceControl
+		SccLocalPath2 = Microsoft.NetworkInterfaceControl
+		SccProjectUniqueName3 = Setup\\Setup.vdproj
+		SccProjectTopLevelParentUniqueName3 = VistaConnectionMonitor.sln
+		SccProjectName3 = Setup
+		SccLocalPath3 = Setup
+		SccProjectUniqueName4 = ConMonServiceEventsWCF\\ConMonServiceEventsWCF.csproj
+		SccProjectName4 = ConMonServiceEventsWCF
+		SccLocalPath4 = ConMonServiceEventsWCF
+		SccProjectUniqueName5 = ConMon.Admin\\ConMon.Admin.csproj
+		SccProjectName5 = ConMon.Admin
+		SccLocalPath5 = ConMon.Admin
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|Mixed Platforms = Debug|Mixed Platforms
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|Mixed Platforms = Release|Mixed Platforms
+		Release|x86 = Release|x86
+		Description = Connection Monitor for Windows 7
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{76AFCAF4-FF4C-4E17-BB22-46C796CFE9F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76AFCAF4-FF4C-4E17-BB22-46C796CFE9F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76AFCAF4-FF4C-4E17-BB22-46C796CFE9F6}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{76AFCAF4-FF4C-4E17-BB22-46C796CFE9F6}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{76AFCAF4-FF4C-4E17-BB22-46C796CFE9F6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{76AFCAF4-FF4C-4E17-BB22-46C796CFE9F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76AFCAF4-FF4C-4E17-BB22-46C796CFE9F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76AFCAF4-FF4C-4E17-BB22-46C796CFE9F6}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{76AFCAF4-FF4C-4E17-BB22-46C796CFE9F6}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{76AFCAF4-FF4C-4E17-BB22-46C796CFE9F6}.Release|x86.ActiveCfg = Release|Any CPU
+		{FC06F32A-9E43-44AA-854F-0D33E13B77FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC06F32A-9E43-44AA-854F-0D33E13B77FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC06F32A-9E43-44AA-854F-0D33E13B77FB}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{FC06F32A-9E43-44AA-854F-0D33E13B77FB}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{FC06F32A-9E43-44AA-854F-0D33E13B77FB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{FC06F32A-9E43-44AA-854F-0D33E13B77FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC06F32A-9E43-44AA-854F-0D33E13B77FB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC06F32A-9E43-44AA-854F-0D33E13B77FB}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{FC06F32A-9E43-44AA-854F-0D33E13B77FB}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{FC06F32A-9E43-44AA-854F-0D33E13B77FB}.Release|x86.ActiveCfg = Release|Any CPU
+		{8D1C478E-7B02-4A03-8D04-25EA39C0ACC4}.Debug|Any CPU.ActiveCfg = Debug
+		{8D1C478E-7B02-4A03-8D04-25EA39C0ACC4}.Debug|Mixed Platforms.ActiveCfg = Debug
+		{8D1C478E-7B02-4A03-8D04-25EA39C0ACC4}.Debug|Mixed Platforms.Build.0 = Debug
+		{8D1C478E-7B02-4A03-8D04-25EA39C0ACC4}.Debug|x86.ActiveCfg = Debug
+		{8D1C478E-7B02-4A03-8D04-25EA39C0ACC4}.Debug|x86.Build.0 = Debug
+		{8D1C478E-7B02-4A03-8D04-25EA39C0ACC4}.Release|Any CPU.ActiveCfg = Release
+		{8D1C478E-7B02-4A03-8D04-25EA39C0ACC4}.Release|Mixed Platforms.ActiveCfg = Release
+		{8D1C478E-7B02-4A03-8D04-25EA39C0ACC4}.Release|Mixed Platforms.Build.0 = Release
+		{8D1C478E-7B02-4A03-8D04-25EA39C0ACC4}.Release|x86.ActiveCfg = Release
+		{8D1C478E-7B02-4A03-8D04-25EA39C0ACC4}.Release|x86.Build.0 = Release
+		{DD36C532-4DFD-4546-8A68-45BA2B4320EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD36C532-4DFD-4546-8A68-45BA2B4320EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD36C532-4DFD-4546-8A68-45BA2B4320EC}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{DD36C532-4DFD-4546-8A68-45BA2B4320EC}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{DD36C532-4DFD-4546-8A68-45BA2B4320EC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DD36C532-4DFD-4546-8A68-45BA2B4320EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD36C532-4DFD-4546-8A68-45BA2B4320EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD36C532-4DFD-4546-8A68-45BA2B4320EC}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{DD36C532-4DFD-4546-8A68-45BA2B4320EC}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{DD36C532-4DFD-4546-8A68-45BA2B4320EC}.Release|x86.ActiveCfg = Release|Any CPU
+		{BE7CF21B-951B-4DE2-ACC2-9BBBE1FC9C8A}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{BE7CF21B-951B-4DE2-ACC2-9BBBE1FC9C8A}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+		{BE7CF21B-951B-4DE2-ACC2-9BBBE1FC9C8A}.Debug|Mixed Platforms.Build.0 = Debug|x86
+		{BE7CF21B-951B-4DE2-ACC2-9BBBE1FC9C8A}.Debug|x86.ActiveCfg = Debug|x86
+		{BE7CF21B-951B-4DE2-ACC2-9BBBE1FC9C8A}.Debug|x86.Build.0 = Debug|x86
+		{BE7CF21B-951B-4DE2-ACC2-9BBBE1FC9C8A}.Release|Any CPU.ActiveCfg = Release|x86
+		{BE7CF21B-951B-4DE2-ACC2-9BBBE1FC9C8A}.Release|Mixed Platforms.ActiveCfg = Release|x86
+		{BE7CF21B-951B-4DE2-ACC2-9BBBE1FC9C8A}.Release|Mixed Platforms.Build.0 = Release|x86
+		{BE7CF21B-951B-4DE2-ACC2-9BBBE1FC9C8A}.Release|x86.ActiveCfg = Release|x86
+		{BE7CF21B-951B-4DE2-ACC2-9BBBE1FC9C8A}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8D1C478E-7B02-4A03-8D04-25EA39C0ACC4} = {C39663D5-0E10-47AD-90E2-7149DC93F1A4}
+		{D77BF999-98BE-4AD1-9549-2C4CFC120F35} = {71EE6331-C507-46E3-A0E2-5BFA4C67B93D}
+		{02804D9C-BC29-41C2-98D9-759A0B6DBAA3} = {71EE6331-C507-46E3-A0E2-5BFA4C67B93D}
+	EndGlobalSection
+EndGlobal

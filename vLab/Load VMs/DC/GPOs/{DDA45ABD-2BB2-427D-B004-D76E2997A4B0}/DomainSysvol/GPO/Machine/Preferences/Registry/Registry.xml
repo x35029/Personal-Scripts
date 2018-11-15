@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RegistrySettings clsid="{A3CCFC41-DFDB-43a5-8D26-0FE8B954DA51}"><Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="IsInstalled" status="IsInstalled" image="12" changed="2018-06-12 14:29:09" uid="{96D09D18-AFC6-4649-9E57-FB89395D9D13}"><Properties action="U" displayDecimal="0" default="0" hive="HKEY_LOCAL_MACHINE" key="SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A7-37EF-4b3f-8CFC-4F3A74704073}" name="IsInstalled" type="REG_DWORD" value="00000000"/></Registry>
+	<Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="IsInstalled" status="IsInstalled" image="12" changed="2018-06-12 14:34:33" uid="{867FD349-E7C8-4C2D-B171-CEEE523DF7FB}"><Properties action="U" displayDecimal="0" default="0" hive="HKEY_LOCAL_MACHINE" key="SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A8-37EF-4b3f-8CFC-4F3A74704073}" name="IsInstalled" type="REG_DWORD" value="00000000"/></Registry>
+</RegistrySettings>
