@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Files clsid="{215B2E53-57CE-475c-80FE-9EEC14635851}"><File clsid="{50BE44C8-567A-4ed1-B1D0-9234FE1F38AF}" name="cmtrace.exe" status="cmtrace.exe" image="2" changed="2018-11-21 12:55:47" uid="{7BD50257-6BB0-47B5-9D86-BE470840F954}"><Properties action="U" fromPath="\\plab.varandas.com\netlogon\cmtrace.exe" targetPath="c:\windows\system32\cmtrace.exe" readOnly="0" archive="1" hidden="0" suppress="0"/></File>
+</Files>

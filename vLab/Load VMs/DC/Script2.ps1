@@ -1,1 +1,2 @@
-﻿Install-WindowsFeature AD-Domain-Services -IncludeManagementToolsInstall-ADDSForest -DomainName vlab.varandas.com -DomainMode Win2012R2 -ForestMode Win2012R2 -DatabasePath "E:\NTDS" -SysvolPath "E:\SYSVOL" -LogPath "E:\Logs" -InstallDNS -DomainNetbiosName VLAB
+﻿Install-WindowsFeature AD-Domain-Services -IncludeManagementTools
+Install-ADDSForest -DomainName pLab.varandas.com -DomainMode WinThreshold -ForestMode WinThreshold -DatabasePath "E:\NTDS" -SysvolPath "E:\SYSVOL" -LogPath "E:\Logs" -InstallDNS -DomainNetbiosName PLAB
