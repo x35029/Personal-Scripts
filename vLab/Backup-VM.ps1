@@ -27,7 +27,7 @@ if ((Get-Date).DayOfWeek -eq "Sunday"){
     #getting VMs and exporting
     $hostVMs = Get-VM
     foreach ($vm in $hostVMs){
-        Export-VM -Name $vm.Name -Path $backupFolder
+        Export-VM -Name $vm.Name -Path $backupFolder$date
         #New-Item -ItemType directory -Path $backupFolder$date\$($vm.Name) | Out-Null
     }
     $backupFolders = Get-ChildItem -Path $backupFolder | Sort -Property CreationTime

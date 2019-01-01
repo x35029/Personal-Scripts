@@ -1,0 +1,9 @@
+$VMList = Get-ChildITem -Path D:\Lab\Backup\20190101-163357
+foreach ($VM in $VMList){
+    $vmcxFileList = Get-ChildITem -Path "D:\Lab\Backup\20190101-163357\$($vm.Name)\Virtual Machines" | Where {$_.Name -like "*.vmcx"}
+    foreach ($vmcxFile in $vmcxFileList){
+        Write-Host "Loading VM: $VM..."
+        
+        Import-VM -Path $vmcxFile.FullName -VhdDestinationPath "L:\vDisks\" -VirtualMachinePath "L:\Virtual Machines\Virtual Machines" -SmartPagingFilePath "L:\SmartPaging" -SnapshotFilePath "L:\Checkpoints" -Copy -GenerateNewId 
+    }    
+}

@@ -59,6 +59,7 @@ Add-ADPrincipalGroupMembership -Identity "CN=xsDNS,OU=ServiceAccounts,DC=pLab,DC
 Get-ADOrganizationalUnit -filter * -Properties ProtectedFromAccidentalDeletion | where {$_.ProtectedFromAccidentalDeletion -eq $false} | Set-ADOrganizationalUnit -ProtectedFromAccidentalDeletion $true
 
 Set-DhcpServerv4DnsSetting -DynamicUpdates Always -DeleteDnsRROnLeaseExpiry $true -UpdateDnsRRForOlderClients $true -DisableDnsPtrRRUpdate $false -NameProtection $false
+Set-DhcpServerv4OptionValue -Router 10.0.0.2
 #Set-DhcpServerDnsCredential
 Set-DnsServerScavenging -ScavengingState $true -ApplyOnAllZones
 Add-DnsServerForwarder -IPAddress 8.8.4.4
