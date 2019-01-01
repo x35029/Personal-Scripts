@@ -37,3 +37,8 @@ if ((Get-Date).DayOfWeek -eq "Sunday"){
         $backupFolders = Get-ChildItem -Path $backupFolder | Sort -Property CreationTime    
     }    
 }
+#Optimize Disks
+$disks = Get-ChildItem L:\vDisks
+foreach($disk in $disks){
+    Optimize-VHD -Path $disk.FullName -Mode Full       
+}
