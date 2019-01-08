@@ -1,18 +1,18 @@
 param( 
     [switch]$DebugLog=$false, 
     [switch]$NoRelaunch=$False, 
-    [ValidateSet("Check","Run")][string]$Action="Check",
-    [ValidateSet("CAS","CS2","S2M","Other","VAR","VARLAB")][string]$SCCMScope="Other"
+    [ValidateSet("Check","Run","Auto-Run")][string]$Action="Check",
+    [ValidateSet("CAS","CS2","S2M-WKS","S2M","Other","VAR","PVA","VARLAB")][string]$SCCMScope="Other"
 )
 # --------------------------------------------------------------------------------------------
 #region HEADER
 $SCRIPT_TITLE = "SUP-Maintenance"
-$SCRIPT_VERSION = "1.0"
+$SCRIPT_VERSION = "4.0"
 
 $ErrorActionPreference 	= "Continue"	# SilentlyContinue / Stop / Continue
 
 # -Script Name: SUP-Maintenance.ps1------------------------------------------------------ 
-# Version: 1.0
+# Version: 4.0
 # Based on PS Template Script Version: 1.0
 # Author: Jose Varandas
 
@@ -39,7 +39,6 @@ $ErrorActionPreference 	= "Continue"	# SilentlyContinue / Stop / Continue
 #                SCCM Powershell Module
 #                ID running script must be able to reach SMSPRoviderWMI
 #                Script must run locally in SMSProvider Server
-#                SCCM environment must have <SUG_NAME_TEMPLATE>-Sustainer and <SUG_NAME_TEMPLATE>-Report already created
 #
 # Known Issues: None
 #
@@ -51,20 +50,28 @@ Function HowTo-Script(){
     Write-Log -sMessage "============================================================================================================================" -iTabs 1            
     Write-Log -sMessage "ARGUMENTS:" -iTabs 1
             Write-Log -sMessage "-DebugLog ($false(Default)/$true) - Enables debug logging in the script, and disables default On Error Resume Next statements" -iTabs 3        	        
-            Write-Log -sMessage "-Action (Check/Action) -> Defines Script Execution Mode" -iTabs 3        
+            Write-Log -sMessage "-Action (Check/Run) -> Defines Script Execution Mode" -iTabs 3        
                 Write-Log -sMessage "-> Check (Default)-> Script will run Pre-checks and Pos-Checks. No Exceution" -iTabs 4        
                 Write-Log -sMessage "-> Run -> Runs script (Pre-Checks,Excecution,Post-Checks)" -iTabs 4
+                Write-Log -sMessage "-> Auto-Run -> Runs script accepting default options while running Pre-Checks,Excecution,Post-Checks" -iTabs 4
             Write-Log -sMessage "-SCCMScope (CAS/CS2/S2M/Other) -> Defines which SCCM Scope will be targeted." -iTabs 3        
-                Write-Log -sMessage "-> CAS: Script targets DALCFG01 and WKS-SecurityUpdates" -iTabs 4        
-                Write-Log -sMessage "-> CS2: Script targets DALCFG03 and WKS-SecurityUpdate" -iTabs 4
-                Write-Log -sMessage "-> S2M: Script targets X1XCFG01 and SUG information is required" -iTabs 4
-                Write-Log -sMessage "-> Other: Script doesn't have a target server and will require all info." -iTabs 4
+                Write-Log -sMessage "-> CAS: Script targets DALCFG01.na.xom.com as Central Server/WMIProvider and WKS-SecurityUpdates as naming convention" -iTabs 4        
+                Write-Log -sMessage "-> CS2: Script targets DALCFG03.na.xom.com as Central Server/WMIProvider and WKS-SecurityUpdate as naming convention" -iTabs 4
+                Write-Log -sMessage "-> S2M-WKS: Script targets X1XCFG01.inf-na.xom.com as Central Server/WMIProvider and WKS-SecurityUpdates as naming convention" -iTabs 4
+                Write-Log -sMessage "-> S2M: Script targets X1XCFG01.inf-na.xom.com as Central Server/WMIProvider and no naming convention" -iTabs 4
+                Write-Log -sMessage "-> Other: Script doesn't have a target server or naming convention and will require all info to be entered manually." -iTabs 4
+                Write-Log -sMessage "-> VAR: Script targets SCCM01.vlab.varandas.com as Central Server/WMIProvider and VAR as naming convention" -iTabs 4
+                Write-Log -sMessage "-> PVA: Script targets SCCM01.plab.varandas.com as Central Server/WMIProvider and VAR as naming convention" -iTabs 4
+                Write-Log -sMessage "-> VARLAB: Script targets SCCM01.vlab.varandas.com as Central Server/WMIProvider and VAR-LAB as naming convention" -iTabs 4
     Write-Log -sMessage "============================================================================================================================" -iTabs 1            
     Write-Log -sMessage "EXAMPLE:" -iTabs 1
         Write-Log -sMessage ".\$sScriptName -Action Check" -iTabs 2     
             Write-Log -sMessage "Script will run all Pre-Checks. No Changes will happen to the device. Action Argument will not be used with `"-Behavior Check`"" -iTabs 2     
         Write-Log -sMessage ".\$sScriptName -Action Run" -iTabs 2     
             Write-Log -sMessage "Script will run all coded remediations, pre and  post checks." -iTabs 2  
+    Write-Log -sMessage "============================================================================================================================" -iTabs 1            
+    Write-Log -sMessage "NOTE:" -iTabs 1
+        Write-Log -sMessage "Action Auto-Run is not supported with SCCMScope Other" -iTabs 2                 
     Write-Log -sMessage "============================================================================================================================" -iTabs 1            
 #		
 }
@@ -91,15 +98,19 @@ Function HowTo-Script(){
 #            9008 - Not able to find Sustainer or Monthly PKGs
 #            9009 - Error evaluating Sustainer SUG
 #            9010 - Error evaluating Report SUG
+#            9011 - Script executed with wrong parameters
+#            9012 - Error getting ADR information
+#            9013 - Error getting SUG Information
+#            9014 - Error getting Deployment Package info
 # 
 # Output: 
 #    
 # Revision History: (Date, Author, Description)
 #		(Date )
-#			v1.0
+#			v4.0
 #			Jose Varandas
 #           CHANGELOG:
-#               Script Created
+#               -> Added more default options for script execution
 #							
 # -------------------------------------------------------------------------------------------- 
 #endregion
@@ -197,7 +208,8 @@ Function Write-Log(){
         [boolean]$bEventLog=$false,
         [int]$iEventID=0,
         [ValidateSet("Error","Information","Warning")][string]$sEventLogType,
-        [string]$sSource=$sEventIDSource 
+        [string]$sSource=$sEventIDSource,
+        [string]$scolor="white" 
     )
     
     #Loop through tabs provided to see if text should be indented within file
@@ -214,7 +226,7 @@ Function Write-Log(){
     IF (!$?){                
         #$global:iExitCode = 5001            
     }
-    Show-Debug $sContent -sColor "white"
+    Show-Debug $sContent -sColor $scolor
     if($bEventLog){
         try{
             New-EventLog -LogName Application -Source $sSource -ErrorAction SilentlyContinue
@@ -1048,16 +1060,16 @@ foreach ($UpdateGroup in $HTUpdateGroupsandUpdatestoRemove.Keys)
 #region VARIABLES
 
 # Standard Variables
-    # *****  Change Logging Path and File Name Here  *****
-    $sLogContext	= "System" 		# System / User 
-    $sLogFolder		= "SCCM"	# Folder Name
+    # *****  Change Logging Path and File Name Here  *****    
     $sOutFileName	= "SUP-Maintenance.log" # Log File Name    
     # ****************************************************
     $sScriptName 	= $MyInvocation.MyCommand
     $sScriptPath 	= Split-Path -Parent $MyInvocation.MyCommand.Path
-    $sLogRoot		= "C:\Logs"
-    $sOutFilePath	= Join-Path -Path (Join-Path -Path $sLogRoot -ChildPath $sLogContext) -ChildPath $sLogFolder
-    $sLogFile		= Join-Path -Path $sOutFilePath -ChildPath $sOutFileName
+    $sLogRoot		= Get-ChildItem -Path HKLM:\SOFTWARE\Microsoft\SMS\Tracing\
+    $sLogRoot       = $sLogRoot[0].GetValue('Tracefilename')
+    $sLogRoot       = $sLogRoot.Substring(0,$SLogRoot.LastIndexOf('\')+1)    
+    $sOutFilePath   = $sLogRoot
+    $sLogFile		= Join-Path -Path $SLogRoot -ChildPath $sOutFileName
     $global:iExitCode = 0
     $sUserName		= $env:username
     $sUserDomain	= $env:userdomain
@@ -1074,14 +1086,14 @@ foreach ($UpdateGroup in $HTUpdateGroupsandUpdatestoRemove.Keys)
             $SMSProvider = "dalcfg01.na.xom.com"            
             $SCCMSite = "CAS"            
             $SUGTemplateName = "WKS-SecurityUpdates-"               
-            $PKGTemplateName = "WKS-"               
+            $PKGTemplateName = "WKS-SecurityUpdates-"               
         }
         #IF CS2
         "CS2" {
             $SMSProvider = "dalcfg03.na.xom.com"
             $SCCMSite = "CS2"
             $SUGTemplateName = "WKS-SecurityUpdate-"
-            $PKGTemplateName = "WKS-"               
+            $PKGTemplateName = "WKS-SecurityUpdate-"               
         }
         #IF S2M
         "S2M" {
@@ -1092,17 +1104,24 @@ foreach ($UpdateGroup in $HTUpdateGroupsandUpdatestoRemove.Keys)
         }        
         #IF VAR
         "VAR"{
-            $SMSProvider = "sccm02.vlab.varandas.com"
+            $SMSProvider = "sccm01.vlab.varandas.com"
             $SCCMSite = "VAR"
             $SUGTemplateName = "VAR-"
             $PKGTemplateName = "VAR-"               
         }
-        #IF VAR
+        #IF VARLAB
         "VARLAB"{
-            $SMSProvider = "sccm02.vlab.varandas.com"
+            $SMSProvider = "sccm01"
             $SCCMSite = "VAR"
             $SUGTemplateName = "VARLAB-TestSUP-"
             $PKGTemplateName = "VARLAB-TestSUP-"               
+        }
+        #IF PVA
+        "PVA"{
+            $SMSProvider = "sccm01.plab.varandas.com"
+            $SCCMSite = "PVA"
+            $SUGTemplateName = "VAR-"
+            $PKGTemplateName = "VAR-"               
         }
         default{
             $SMSProvider,$SCCMSite,$SUGTemplateName,$PKGTemplateName = $null
@@ -1117,168 +1136,185 @@ foreach ($UpdateGroup in $HTUpdateGroupsandUpdatestoRemove.Keys)
 Function MainSub{
 # ===============================================================================================================================================================================
 #region 1_PRE-CHECKS        
-    Write-Log -sMessage "Starting 1 - Pre-Checks." -iTabs 1                         
-    Write-Host "Starting 1 - Pre-Checks." -ForegroundColor Cyan -BackgroundColor Black
-    #region 1.0 Loading SCCM Powershell Module
-        Write-Host "    1.0 Loading SCCM Powershell module from $($Env:SMS_ADMIN_UI_PATH.Substring(0,$Env:SMS_ADMIN_UI_PATH.Length-5) + '\ConfigurationManager.psd1')" -ForegroundColor Cyan
-        Write-Log      "1.0 Loading SCCM Powershell module from $($Env:SMS_ADMIN_UI_PATH.Substring(0,$Env:SMS_ADMIN_UI_PATH.Length-5) + '\ConfigurationManager.psd1')" -iTabs 2
-        Write-Host "    This might take a few minutes..."
-        Try{            
-            Import-module ($Env:SMS_ADMIN_UI_PATH.Substring(0,$Env:SMS_ADMIN_UI_PATH.Length-5) + '\ConfigurationManager.psd1')
-            Write-Host "    Successfully loaded SCCM Powershell module" -ForegroundColor Green
-            Write-Log  "Successfully loaded SCCM Powershell module" -iTabs 2
+    Write-Host "Starting 1 - Pre-Checks." -BackgroundColor Black -ForegroundColor Cyan
+    Write-Log -sMessage "Starting 1 - Pre-Checks." -iTabs 1
+    #region 1.0 Checking/Loading SCCM Powershell Module        
+        Write-Host "    1.0 Checking/Loading SCCM Powershell module from $($Env:SMS_ADMIN_UI_PATH.Substring(0,$Env:SMS_ADMIN_UI_PATH.Length-5) + '\ConfigurationManager.psd1')" -ForegroundColor Cyan
+        Write-Log      "1.0 Checking/Loading SCCM Powershell module from $($Env:SMS_ADMIN_UI_PATH.Substring(0,$Env:SMS_ADMIN_UI_PATH.Length-5) + '\ConfigurationManager.psd1')" -iTabs 2
+        if (Get-Module | Where-Object {$_.Name -like "*ConfigurationManager*"}){
+            Write-Host "        SCCM PS Module was found loaded in this session!" -ForegroundColor Green
+            Write-Log          "SCCM PS Module was found loaded in this session!" -iTabs 3
         }
-        catch{
-            Write-Host "    Unable to Load SCCM Powershell module." -ForegroundColor Red
-            Write-Log      "Unable to Load SCCM Powershell module." -iTabs 2
-            Write-Host "    Aborting script." -ForegroundColor Red
-            Write-Log      "Aborting script." -iTabs 2
-            $global:iExitCode = 9001
-            return $global:iExitCode
-        }                      
+        else{
+            Write-Host "        SCCM PS Module was not found in this session! Loading Module. This might take a few minuts..."
+            Write-Log          "SCCM PS Module was not found in this session! Loading Module. This might take a few minutes..." -iTabs 3                
+            Try{            
+                Write-Host "            Looking for Module in $(($Env:SMS_ADMIN_UI_PATH.Substring(0,$Env:SMS_ADMIN_UI_PATH.Length-5) + '\ConfigurationManager.psd1'))"
+                Write-Log              "Looking for Module in $(($Env:SMS_ADMIN_UI_PATH.Substring(0,$Env:SMS_ADMIN_UI_PATH.Length-5) + '\ConfigurationManager.psd1'))" -iTabs 4
+                Import-module ($Env:SMS_ADMIN_UI_PATH.Substring(0,$Env:SMS_ADMIN_UI_PATH.Length-5) + '\ConfigurationManager.psd1')
+                Write-Host "            Successfully loaded SCCM Powershell module" -ForegroundColor Green
+                Write-Log              "Successfully loaded SCCM Powershell module" -iTabs 4
+            }
+            catch{
+                Write-Host "            Unable to Load SCCM Powershell module." -ForegroundColor Red
+                Write-Log              "Unable to Load SCCM Powershell module." -iTabs 4
+                Write-Host "            Aborting script." -ForegroundColor Red
+                Write-Log              "Aborting script." -iTabs 4
+                $global:iExitCode = 9001
+                return $global:iExitCode
+            }                      
+        }
     #endregion
-    #region 1.1 Confirm Script Arguments
-    Write-Log      "1.1 Collecting user confirmation on arguments to run this script" -iTabs 2    
-    Write-Host "    1.1 Collecting user confirmation on arguments to run this script" -ForegroundColor Cyan    
-    Write-Host "    Script is running with Command Line: $sCMDArgs"       
-    if ($SCCMSite -eq $null){
-        Write-Host "    Add the required information below to proceed with this script."
-    }
-        #Setting SMS Provider
-        if ($SMSProvider -eq $null){                
-            $smsProvTest = $false
-            do{
-                $SMSProvider = Read-Host "        SMS Provider [<ServerFQDN>/Abort] "
-                if ($SMSProvider -eq "Abort"){
-                    $global:iExitCode = 8001
-                    return $global:iExitCode
-                }
-                if (Test-Connection -ComputerName $SMSProvider -Count 1 -Quiet){
-                    Write-Host "        $SMSProvider was found and set as SMSProvider" -ForegroundColor Green
-                    $smsProvTest = $true
-                }
-                else{
-                    Write-Host "        Unable to reach $SMSProvider. Ensure server FQDN is valid" -ForegroundColor Red
-                    $smsProvTest = $false
-                }                
-            }while(!$smsProvTest)
-            Write-Host
-        }  
-        #Setting SCCM Site        
+    #region 1.1 Confirm Script Arguments    
+        Write-Host "    1.1 Checking Script arguments" -ForegroundColor Cyan    
+        Write-Log      "1.1 Checking Script arguments" -iTabs 2    
+        Write-Host "        Script is running with Command Line: $sCMDArgs"       
         if ($SCCMSite -eq $null){
-            $sccmSiteTest = $false
-            do{
-                $SCCMSite = Read-Host "        SCCM Site [<SITECODE>/Abort] "
-                if ($SCCMSite -eq "Abort"){
-                    $global:iExitCode = 8001
-                    return $global:iExitCode
-                }
-                try{
-                    $qrySccmSite = $(get-WMIObject -ComputerName $SMSProvider -Namespace "root\SMS" -Class "SMS_ProviderLocation" | Where {$_.ProviderForLocalSite -eq "True"} | Select Sitecode).Sitecode
-                }
-                catch{
-                    Write-Host "        Unable to reach $SMSProvider SiteCode via WMI. Ensure permissions are present for this operation." -ForegroundColor Red
-                    $sccmSiteTest=$false
-                }
-                if ($qrySccmSite -eq $SCCMSite){
-                    Write-Host "        SCCM Site $SCCMSite found in $SMSProvider. Setting as SCCM Site Code" -ForegroundColor Green
-                    Write-Host
-                    $sccmSiteTest=$true
-                }
-                else{
-                    Write-Host "        SCCM Site $SCCMSite not found in $SMSProvider. Verify Site is valid" -ForegroundColor Red
-                    $sccmSiteTest=$false
-                }                
-            }while(!$sccmSiteTest)     
-        }
-        #Setting SUG Template Name
-        if ($SUGTemplateName -eq $null){
-            $sugTest = $false
-            do{
-                $SUGTemplateName = Read-Host "        SUG Template Name [<SUGName>/Abort] "
-                if ($SUGTemplateName -eq "Abort"){
-                    $global:iExitCode = 8001
-                    return $global:iExitCode
-                }
-                try{
-                    $sugs = Get-CMSoftwareUpdateGroup | Where {$_.LocalizedDisplayName -like "*$SUGTemplateName*"}    
-                    if ($sugs.Count -gt 0){
-                        Write-Host "        $($sugs.Count) SUGs found matching $SUGTemplateName" -ForegroundColor Green
-                        $sugTest=$true
+            if ($Action -eq "Auto-Run"){
+                Write-Host "        Action Auto-Run argument is not supported with SCCMScope Other."
+                Write-Log          "Action Auto-Run argument is not supported with SCCMScope Other." -iTabs 3    
+                HowTo-Script
+                Write-Host "            Aborting script." -ForegroundColor Red
+                Write-Log              "Aborting script." -iTabs 4
+                $global:iExitCode = 9011
+                return $global:iExitCode
+            }
+            Write-Host "        Add the required information to proceed with this script."
+            Write-Log          "Collecting required information to proceed with this script." -iTabs 3            
+            #Setting SMS Provider
+            if ($SMSProvider -eq $null){                
+                $smsProvTest = $false
+                do{
+                    $SMSProvider = Read-Host "            SMS Provider [<ServerFQDN>/Abort] "
+                    if ($SMSProvider -eq "Abort"){
+                        Write-Host "                Aborting script." -ForegroundColor Red
+                        Write-Log                  "Aborting script." -iTabs 5
+                        $global:iExitCode = 8001
+                        return $global:iExitCode
+                    }
+                    if (Test-Connection -ComputerName $SMSProvider -Count 1 -Quiet){
+                        Write-Host "                $SMSProvider was found and set as SMSProvider" -ForegroundColor Green
+                        $smsProvTest = $true
                     }
                     else{
-                        Write-Host "        No SUGs found matching $SUGTemplateName. Check SUG Name template" -ForegroundColor Red
-                        $sugTest=$false
+                        Write-Host "                Unable to reach $SMSProvider. Ensure server FQDN is valid" -ForegroundColor Red
+                        $smsProvTest = $false
+                    }                
+                }while(!$smsProvTest)
+                Write-Host
+            }  
+            #Setting SCCM Site        
+            if ($SCCMSite -eq $null){
+                $sccmSiteTest = $false
+                do{
+                    $SCCMSite = Read-Host "            SCCM Site [<SITECODE>/Abort] "
+                    if ($SCCMSite -eq "Abort"){
+                        Write-Host "                Aborting script." -ForegroundColor Red
+                        Write-Log                  "Aborting script." -iTabs 5
+                        $global:iExitCode = 8001
+                        return $global:iExitCode
                     }
-                }
-                catch{
-                    Write-Host "        Unable to query Software Update Groups. Please check if permissions are in place for this operation." -ForegroundColor Red
-                    $sugTest=$false
-                }
-            }while(!$sugTest)            
-            Write-Host
-        }
-        #Setting PKG Template Name
-        if ($PKGTemplateName -eq $null){
-            $pkgTest = $false
-            do{
-                $PKGTemplateName = Read-Host "        Package Template Name [<PKGName>/Abort] "
-                if ($PKGTemplateName -eq "Abort"){
-                    $global:iExitCode = 8001
-                    return $global:iExitCode
-                }
-                try{
-                    $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "*$PKGTemplateName*"}    
-                    if ($pkgs.Count -gt 0){
-                        Write-Host "        $($pkgs.Count) Pkgs found matching $PKGTemplateName" -ForegroundColor Green
-                        $pkgTest=$true
+                    try{
+                        $qrySccmSite = $(get-WMIObject -ComputerName $SMSProvider -Namespace "root\SMS" -Class "SMS_ProviderLocation" | Where {$_.ProviderForLocalSite -eq "True"} | Select Sitecode).Sitecode
+                    }
+                    catch{
+                        Write-Host "                Unable to reach $SMSProvider SiteCode via WMI. Ensure user permissions are present for this operation." -ForegroundColor Red
+                        $sccmSiteTest=$false
+                    }
+                    if ($qrySccmSite -eq $SCCMSite){
+                        Write-Host "                SCCM Site $SCCMSite found in $SMSProvider. Setting as SCCM Site Code" -ForegroundColor Green                        
+                        $sccmSiteTest=$true
                     }
                     else{
-                        Write-Host "        No pkgs found matching $PKGTemplateName. Check SUG Name template" -ForegroundColor Red
-                        $pkgTest=$false
-                    }
-                }
-                catch{
-                    Write-Host "        Unable to query Deployment Packages. Please check if permissions are in place for this operation." -ForegroundColor Red
-                    $pkgTest=$false
-                }
-            }while(!$sugTest)            
-            Write-Host
+                        Write-Host "                SCCM Site $SCCMSite not found in $SMSProvider. Verify Site is valid" -ForegroundColor Red
+                        $sccmSiteTest=$false
+                    }                
+                }while(!$sccmSiteTest)
+                Write-Host     
+            }
+            #Setting SUG Template Name
+            if ($SUGTemplateName -eq $null){
+                $sugTest = $false
+                do{
+                    $SUGTemplateName = Read-Host "            SUG Template Name [<SUGName>/Abort] "
+                    if ($SUGTemplateName -eq "Abort"){
+                        Write-Host "                Aborting script." -ForegroundColor Red
+                        Write-Log                  "Aborting script." -iTabs 5
+                        $global:iExitCode = 8001
+                        return $global:iExitCode
+                    }       
+                    else{       
+                        Write-Host "            SUG Template Name: $SUGTemplateName "
+                        $answer = Read-Host "            Do you confirm? [Y/n] "                
+                        if ($answer -eq "Y"){
+                            $sugTest=$true
+                        }
+                    }      
+                }while(!$sugTest)            
+                Write-Host
+            }
+            #Setting PKG Template Name
+            if ($PKGTemplateName -eq $null){
+                $pkgTest = $false
+                do{
+                    $PKGTemplateName = Read-Host "            Package Template Name [<PKGName>/Abort] "
+                    if ($PKGTemplateName -eq "Abort"){
+                        Write-Host "                Aborting script." -ForegroundColor Red
+                        Write-Log                  "Aborting script." -iTabs 5
+                        $global:iExitCode = 8001
+                        return $global:iExitCode
+                    }    
+                    else{       
+                        Write-Host "            Package Template Name: $PKGTemplateName "
+                        $answer = Read-Host "            Do you confirm? [Y/n] "                
+                        if ($answer -eq "Y"){
+                            $pkgTest=$true
+                        }
+                    }                     
+                }while(!$pkgTest)            
+                Write-Host
+            }
         }
-        #Confirming Settings                      
-        Write-Host "    Setings are defined as:"        
-        Write-Host "    SCCM Scope: $SCCMScope" -ForegroundColor Yellow                  
-        Write-Host "        SMSProvider: $SMSProvider"
-        Write-Host "        SCCM Site Code: $SCCMSite"
-        Write-Host "        SUG Name Template: $SUGTemplateName"
-        Write-Host "        PKG Name Template: $PkgTemplateName"        
+        # Testing SCCM Drive
         try{
             cd $SCCMSite":"            
         }
         catch{
-            $global:iExitCode = 9005
             Write-Log "Unable to connect to SCCM Site. Aborting Script" -iTabs 2            
+            Write-Host "        Aborting script." -ForegroundColor Red
+            Write-Log          "Aborting script." -iTabs 3
+            $global:iExitCode = 9005            
             return $global:iExitCode
         }
         do{
-            $answer = Read-Host "    Do you want to proceed with the settings defined above? [Y/n] "
-            Write-Host
+            $answer = Read-Host "        Do you want to proceed with the settings defined above? [Y/n] "                
         } while (($answer -ne "Y") -and ($answer -ne "n"))
-        if ($answer -eq "n"){
-            Write-Log "User Aborted Script" -iTabs 2
+        if ($answer -eq "n"){                
+            Write-Host "            Aborting script." -ForegroundColor Red
+            Write-Log              "Aborting script." -iTabs 4
             $global:iExitCode = 8001
             return $global:iExitCode
         }
-    Write-Log "User Confirmed settings as:" -iTabs 2    
-    Write-Log "SMSProvider: $SMSProvider" -iTabs 3
-    Write-Log "SCCM Site Code: $SCCMSite" -iTabs 3 
-    Write-Log "SUG Name Template: $SUGTemplateName" -iTabs 3    
-    Write-Log "PKG Name Template: $PKGTemplateName" -iTabs 3    
+        #Confirming Settings                      
+        Write-Host "        Setings were defined as:"        
+        Write-Log          "Setings were defined as:" -iTabs 2    
+        Write-Host "            SCCM Scope: $SCCMScope" -ForegroundColor Yellow                  
+        Write-Log              "SCCM Scope: $SCCMScope" -iTabs 3    
+        Write-Host "            SMSProvider: $SMSProvider"
+        Write-Log              "SMSProvider: $SMSProvider" -iTabs 3
+        Write-Host "            SCCM Site Code: $SCCMSite"
+        Write-Log              "SCCM Site Code: $SCCMSite" -iTabs 3 
+        Write-Host "            SUG Name Template: $SUGTemplateName"
+        Write-Log              "SUG Name Template: $SUGTemplateName" -iTabs 3    
+        Write-Host "            PKG Name Template: $PkgTemplateName"        
+        Write-Log              "PKG Name Template: $PKGTemplateName" -iTabs 3                
     #endregion  
     #region 1.2 Is this SCCM Admin User?
+    
         $userRoleTest = $false
         Write-Host "    1.2 Checking if user has permissions in SCCM to run this script" -ForegroundColor Cyan
         Write-Log      "1.2 Checking if user has permissions in SCCM to run this script..." -iTabs 2
+        <#    
         $userRoles = (Get-CMAdministrativeUser -Name $($sUserDomain+"\"+$sUserName)).RoleNames
         foreach ($role in $userRoles){
             If (($role -eq "Full Administrator") -or ($role -eq "Software Update Manager")){
@@ -1286,92 +1322,274 @@ Function MainSub{
             }
         }
         if ($userRoleTest){
-            Write-Host "    User has permissions to execute this script." -ForegroundColor Green            
-            Write-Log -sMessage "...PASS. Proceeding." -iTabs 3
+            Write-Host  "        User has permissions to execute this script." -ForegroundColor Green            
+            Write-Log           "User has permissions to execute this script." -iTabs 3
         }
         else{
-            Write-Host "    User does not have permissions to execute this script." -ForegroundColor Red
-            Write-Log -sMessage "...FAIL. Exiting." -iTabs 3
+            Write-Host "        User does not have permissions to execute this script." -ForegroundColor Red
+            Write-Log          "User does not have permissions to execute this script." -iTabs 3
+            Write-Host "        Aborting script." -ForegroundColor Red
+            Write-Log          "Aborting script." -iTabs 3
             $global:iExitCode = 9002
             return $global:iExitCode
-        }        
+        }    
+        #>    
+        Write-Host "        Pre-Check to be implemented" -ForegroundColor Cyan
+        Write-Log          "Pre-Check to be implemented" -iTabs 3
     #endregion    
     #region 1.3 Querying Software Update Groups
-        Write-Host "    1.3 Getting Software Update Group Information..." -ForegroundColor Cyan
-        Write-Log      "1.3 Getting Software Update Group Information..." -iTabs 2
-        try{
-            $sugInfo = Get-cmsoftwareupdategroup | Where {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | Select-Object LocalizedDisplayName,CI_ID,NumberOfUpdates,NumberOfExpiredUpdates,ContainsSupersededUpdates
-            Write-Host "    ...Fetched!"
-            #Checking if required SUGs are present
-            $sugRpt=$false
-            $sugSustainer=$false
-            foreach ($sug in $suginfo){
-                if ($sug.LocalizedDisplayName -eq $SUGTemplateName+"Report"){
-                    Write-Host "    Found Reporting SUG: $($sug.LocalizedDisplayName)" -ForegroundColor Green
-                    Write-Log      "Found Reporting SUG: $($sug.LocalizedDisplayName)" -iTabs 3
-                    $sugRpt=$true
+        Write-Host "    1.3 Getting SUP Information" -ForegroundColor Cyan
+        Write-Log      "1.3 Getting SUP Information" -iTabs 2
+            #region Checking ADR
+                Write-Host "        Checking if Default ADR is present."
+                Write-Log          "Checking if Default ADR is present." -iTabs 3
+                try{
+                    $defaultAdr = Get-CMAutoDeploymentRule -fast -Name "$($SUGTemplateName)ADR"
+                    if ($defaultAdr.Count -gt 0){
+                        Write-Host "            Default ADR ($($SUGTemplateName)ADR) was found in SCCM Environment." -ForegroundColor Green
+                        Write-Log              "Default ADR ($($SUGTemplateName)ADR) was found in SCCM Environment." -iTabs 4
+                    }
+                    else{
+                        Write-Host "            Default ADR ($($SUGTemplateName)ADR) was not found in SCCM Environment. For the sake of management, is strongly recomended to have an ADR responsible for creating Monhtly updates." -ForegroundColor Red
+                        Write-Log              "Default ADR ($($SUGTemplateName)ADR) was not found in SCCM Environment. For the sake of management, is strongly recomended to have an ADR responsible for creating Monhtly updates." -iTabs 4
+                    }
                 }
-                elseif ($sug.LocalizedDisplayName -eq $SUGTemplateName+"Sustainer"){
-                    Write-Host "    Found Sustainer SUG: $($sug.LocalizedDisplayName)" -ForegroundColor Green
-                    Write-Log      "Found Sustainer SUG: $($sug.LocalizedDisplayName)" -iTabs 3
-                    $sugSustainer=$true
+                catch{
+                    Write-Host "        Unable to verify existing ADRs. Permission Error. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -ForegroundColor Red
+                    Write-Log          "Unable to verify existing ADRs. Permission Error. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -iTabs 4
+                    Write-Host "            Aborting script." -ForegroundColor Red
+                    Write-Log              "Aborting script." -iTabs 4
+                    $global:iExitCode = 9012
+                    return $global:iExitCode
                 }
-            }
-            if ((!$sugRpt) -or (!$sugSustainer)){
-                Write-Host "    Unable to find `"$($SUGTemplateName+"Sustainer")`" and `"$($SUGTemplateName+"Report")`"." -ForegroundColor Red
-                Write-Log      "Unable to find `"$($SUGTemplateName+"Sustainer")`" and `"$($SUGTemplateName+"Report")`"." -iTabs 3
-                Write-Host "    Ensure  SUGs are present before running this script" -ForegroundColor Red
-                Write-Log -sMessage "...FAIL. Exiting." -iTabs 3
-                $global:iExitCode = 9007
-                return $global:iExitCode
-            }
-            Write-Log $($sugInfo | ft | out-string) -iTabs 2 
-        }
-        catch{
-            Write-Log
-            Write-Host "    ...Failed!" -ForegroundColor Red
-            $global:iExitCode = 9004
-            return $global:iExitCode
-        }   
+            #endregion
+            #region Checking Basic SUGs (Report and Sustainer)
+                Write-Host "        Checking if required SUGs are present."
+                Write-Log          "Checking if required SUGs are present." -iTabs 3   
+                    #Gettings SUG Info         
+                    try{
+                        $sugs = Get-CMSoftwareUpdateGroup | Where {$_.LocalizedDisplayName -like "$SUGTemplateName*"}                            
+                        $sugRpt = $sugs | Where {$_.LocalizedDisplayName -eq $SUGTemplateName+"Report"}
+
+                        $sugSustainer = $sugs | Where {$_.LocalizedDisplayName -eq $SUGTemplateName+"Sustainer"}
+                    }
+                    #Error while getting SUG Info
+                    catch{                                                
+                        Write-Host "            Unable to query Software Update Groups. Permission Error. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -ForegroundColor Red
+                        Write-Log              "Unable to query Software Update Groups. Permission Error. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -iTabs 4
+                        Write-Host "            Aborting script." -ForegroundColor Red
+                        Write-Log              "Aborting script." -iTabs 4
+                        $global:iExitCode = 9013
+                        return $global:iExitCode
+                    }
+                    #RptSUG was found
+                    if ($sugRpt.Count -gt 0){
+                        Write-Host "            $($SUGTemplateName)Report was found." -foreground Green
+                        Write-Log              "$($SUGTemplateName)Report was found." -iTabs 4
+                    }
+                    #Rpt was not found
+                    else{
+                        Write-Host "            $($SUGTemplateName)Report was not found." -foreground Red
+                        Write-Log              "$($SUGTemplateName)Report was not found." -iTabs 4
+                        do{
+                            $answer = Read-Host "        Do you want to create $($SUGTemplateName)Report? This SUG is required to proceed with script execution [Y/n] "                
+                        } while (($answer -ne "Y") -and ($answer -ne "n"))
+                        #aborting script
+                        if ($answer -eq "n"){                
+                            Write-Host "            Create $($SUGTemplateName)Report before executing this script again."
+                            Write-Log              "Create $($SUGTemplateName)Report before executing this script again." -iTabs 4
+                            Write-Host "            Aborting script." -ForegroundColor Red
+                            Write-Log              "Aborting script." -iTabs 4
+                            $global:iExitCode = 8001
+                            return $global:iExitCode
+                        }   
+                        # Creating RptSUG
+                        if ($answer -eq "y"){                
+                            Write-Host "            Creating $($SUGTemplateName)Report..."
+                            Write-Log              "Creating $($SUGTemplateName)Report..." -iTabs 4
+                            try{
+                                New-CMSoftwareUpdateGroup -Name "$($SUGTemplateName)Report"
+                                Write-Host "                $($SUGTemplateName)Report was created." -ForegroundColor Green
+                                Write-Log                  "$($SUGTemplateName)Report was created" -iTabs 5
+                            }    
+                            catch{
+                                Write-Host "                Error while creating $($SUGTemplateName)Report. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -ForegroundColor Red
+                                Write-Log                  "Error while creating $($SUGTemplateName)Report. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -iTabs 5
+                                Write-Host "                Aborting script." -ForegroundColor Red
+                                Write-Log                  "Aborting script." -iTabs 5
+                                $global:iExitCode = 9014
+                                return $global:iExitCode                            
+                            }
+                        }                      
+                    }
+                    if ($sugSustainer.Count -gt 0){
+                        Write-Host "            $($SUGTemplateName)Sustainer was found." -foreground Green
+                        Write-Log              "$($SUGTemplateName)Sustainer was found." -iTabs 4
+                    }
+                    #Sustainer was not found
+                    else{
+                        Write-Host "            $($SUGTemplateName)Sustainer was not found." -foreground Red
+                        Write-Log              "$($SUGTemplateName)Sustainer was not found." -iTabs 4
+                        do{
+                            $answer = Read-Host "        Do you want to create $($SUGTemplateName)Sustainer? This SUG is required to proceed with script execution [Y/n] "                
+                        } while (($answer -ne "Y") -and ($answer -ne "n"))
+                        #aborting script
+                        if ($answer -eq "n"){                
+                            Write-Host "            Create $($SUGTemplateName)Sustainer before executing this script again."
+                            Write-Log              "Create $($SUGTemplateName)Sustainer before executing this script again." -iTabs 4
+                            Write-Host "            Aborting script." -ForegroundColor Red
+                            Write-Log              "Aborting script." -iTabs 4
+                            $global:iExitCode = 8001
+                            return $global:iExitCode
+                        }   
+                        # Creating RptSUG
+                        if ($answer -eq "y"){                
+                            Write-Host "            Creating $($SUGTemplateName)Sustainer..."
+                            Write-Log              "Creating $($SUGTemplateName)Sustainer..." -iTabs 4
+                            try{
+                                New-CMSoftwareUpdateGroup -Name "$($SUGTemplateName)Sustainer"
+                                Write-Host "            $($SUGTemplateName)Sustainer was created." -ForegroundColor Green
+                                Write-Log              "$($SUGTemplateName)Sustainer was created" -iTabs 4
+                            }    
+                            catch{
+                                Write-Host "            Error while creating $($SUGTemplateName)Sustainer. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -ForegroundColor Red
+                                Write-Log              "Error while creating $($SUGTemplateName)Sustainer. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -iTabs 4
+                                Write-Host "            Aborting script." -ForegroundColor Red
+                                Write-Log              "Aborting script." -iTabs 4
+                                $global:iExitCode = 9015
+                                return $global:iExitCode                            
+                            }
+                        } 
+                    }
+            #endregion
+            #region Checking Basic Packages (Monthly and Sustainer)
+                Write-Host "        Checking if required Deployment Packages are present."
+                Write-Log          "Checking if required Deployment Packages are present." -iTabs 3
+                    #Getting Deployment Package Info 
+                    try{
+                        $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "$PKGTemplateName*"}
+                        $pkgMonth     = $pkgs | Where {$_.Name -eq "$($PKGTemplateName)Monthly"}
+
+                        $pkgSustainer = $pkgs | Where {$_.Name -eq "$($PKGTemplateName)Sustainer"}   
+                    }
+                    #Error while getting Deployment Package Info
+                    catch{
+                        Write-Host "            Unable to query Deployment Packages. Permission Error. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -ForegroundColor Red
+                        Write-Log              "Unable to query Deployment Packages. Permission Error. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -iTabs 4
+                        Write-Host "            Aborting script." -ForegroundColor Red
+                        Write-Log              "Aborting script." -iTabs 4
+                        $global:iExitCode = 9014
+                        return $global:iExitCode
+                    }
+                    #Monthly Deployment Package was found
+                    if ($pkgMonth.Count -gt 0){
+                        Write-Host "            $($PKGTemplateName)Monthly was found." -foreground Green
+                        Write-Log              "$($PKGTemplateName)Monthly was found." -iTabs 4
+                    }
+                    #Monthly Deployment Package was not found
+                    else{
+                        Write-Host "            $($PKGTemplateName)Monthly was not found." -foreground Red
+                        Write-Log              "$($PKGTemplateName)Monthly was not found." -iTabs 4
+                        do{
+                            $answer = Read-Host "        Do you want to create $($PKGTemplateName)Monthly ? This Package is Required to proceed with script execution [Y/n] "                
+                        } while (($answer -ne "Y") -and ($answer -ne "n"))
+                        #aborting script
+                        if ($answer -eq "n"){                
+                            Write-Host "            Create $($PKGTemplateName)Monthly before executing this script again."
+                            Write-Log              "Create $($PKGTemplateName)Monthly before executing this script again." -iTabs 4
+                            Write-Host "            Aborting script." -ForegroundColor Red
+                            Write-Log              "Aborting script." -iTabs 4
+                            $global:iExitCode = 8001
+                            return $global:iExitCode
+                        }   
+                        # Creating RptSUG
+                        if ($answer -eq "y"){
+                            $pathTest=$false
+
+                            do{
+                                Write-Host "        Enter a valid Network Share Path to store Updates"                
+                                Write-Host "        Both SCCM Server Account and your ID must have Read/Write access to target location"                
+                                $sharePath = Read-Host "        Network Share Path (\\<SERVERNAME>\PATH or Abort) "                
+                                Write-Host "        Testing $sharePath..."
+                                $sharePath = "\\SCCM01\Admin$"
+                                $pathTest = Test-Path $("filesystem::$sharePath") 
+                            } while (($sharePath -ne "Abort") -and (!($pathTest)))          
+                            Write-Host "            Creating $($PKGTemplateName)Monthly..."
+                            Write-Log              "Creating $($PKGTemplateName)Monthly..." -iTabs 4
+                            try{
+                                New-CMSoftwareUpdateDeploymentPackage -Name "$($PKGTemplateName)Monthly" -Path "$sharePath" -Priority High
+                                Write-Host "            $($PKGTemplateName)Monthly was created." -ForegroundColor Green
+                                Write-Log              "$($PKGTemplateName)Monthly was created" -iTabs 4
+                            }    
+                            catch{
+                                Write-Host "            Error while creating $($PKGTemplateName)Monthly. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -ForegroundColor Red
+                                Write-Log              "Error while creating $($PKGTemplateName)Monthly. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -iTabs 4
+                                Write-Host "            Aborting script." -ForegroundColor Red
+                                Write-Log              "Aborting script." -iTabs 4
+                                $global:iExitCode = 9014
+                                return $global:iExitCode                            
+                            }
+                        }                      
+                    }
+                    #Sustainer Deployment Package was found
+                    if ($pkgSustainer.Count -gt 0){
+                        Write-Host "            $($PKGTemplateName)Sustainer was found." -foreground Green
+                        Write-Log              "$($PKGTemplateName)Sustainer was found." -iTabs 4
+                    }
+                    #Monthly Deployment Package was not found
+                    else{
+                        Write-Host "            $($PKGTemplateName)Sustainer was not found." -foreground Red
+                        Write-Log              "$($PKGTemplateName)Sustainer was not found." -iTabs 4
+                        do{
+                            $answer = Read-Host "        Do you want to create $($PKGTemplateName)Sustainer? This Package is Required to proceed with script execution [Y/n] "                
+                        } while (($answer -ne "Y") -and ($answer -ne "n"))
+                        #aborting script
+                        if ($answer -eq "n"){                
+                            Write-Host "            Create $($PKGTemplateName)Sustainer before executing this script again."
+                            Write-Log              "Create $($PKGTemplateName)Sustainer before executing this script again." -iTabs 4
+                            Write-Host "            Aborting script." -ForegroundColor Red
+                            Write-Log              "Aborting script." -iTabs 4
+                            $global:iExitCode = 8001
+                            return $global:iExitCode
+                        }   
+                        # Creating RptSUG
+                        if ($answer -eq "y"){
+                            $pathTest=$false
+
+                            do{
+                                Write-Host "        Enter a valid Network Share Path to store Updates"                
+                                Write-Host "        Both SCCM Server Account and your ID must have Read/Write access to target location"                
+                                $sharePath = Read-Host "        Network Share Path (\\<SERVERNAME>\PATH or Abort) "                
+                                Write-Host "        Testing $sharePath..."
+                                $sharePath = "\\SCCM01\Admin$"
+                                $pathTest = Test-Path $("filesystem::$sharePath") 
+                            } while (($sharePath -ne "Abort") -and (!($pathTest)))          
+                            Write-Host "            Creating $($PKGTemplateName)Sustainer..."
+                            Write-Log              "Creating $($PKGTemplateName)Sustainer..." -iTabs 4
+                            try{
+                                New-CMSoftwareUpdateDeploymentPackage -Name "$($PKGTemplateName)Sustainer" -Path $sharePath -Priority High
+                                Write-Host "            $($PKGTemplateName)Sustainer was created." -ForegroundColor Green
+                                Write-Log              "$($PKGTemplateName)Sustainer was created" -iTabs 4
+                            }    
+                            catch{
+                                Write-Host "            Error while creating $($PKGTemplateName)Sustainer. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -ForegroundColor Red
+                                Write-Log              "Error while creating $($PKGTemplateName)Sustainer. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -iTabs 4
+                                Write-Host "            Aborting script." -ForegroundColor Red
+                                Write-Log              "Aborting script." -iTabs 4
+                                $global:iExitCode = 9014
+                                return $global:iExitCode                            
+                            }
+                        }                      
+                    }                    
+            #endregion      
         Write-Host    
         Write-Log -iTabs 1
     #endregion
     #region 1.4 Querying Package Sizes        
         Write-Host "    1.4 Getting Deployment Package Information..."
-        Write-Log      "1.4 Getting Deployment Package Information..." -iTabs 2
-        try{
-            $pkgInfo = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "$PKGTemplateName*"} | Select-Object Name,PackageID,Priority,PkgSourcePath,PackageSize,PkgFinalSize 
-            Write-Host "    ...Fetched!" 
-            #Checking if required Pkgs are present
-            $pkgMonthly=$false
-            $pkgSustainer=$false
-            foreach ($pkg in $pkgInfo){
-                if ($pkg.Name -eq $PKGTemplateName+"Monthly"){
-                    Write-Host "    Found Monthly PKG: $($pkg.Name)" -ForegroundColor Green
-                    Write-Log      "Found Monthly PKG: $($pkg.Name)" -iTabs 3
-                    $pkgMonthly=$true
-                }
-                elseif ($pkg.Name -eq $PKGTemplateName+"Sustainer"){
-                    Write-Host "    Found Sustainer PKG: $($pkg.Name)" -ForegroundColor Green
-                    Write-Log      "Found Sustainer PKG: $($pkg.Name)" -iTabs 3
-                    $pkgSustainer=$true
-                }
-            }
-            if ((!$pkgMonthly) -or (!$pkgSustainer)){
-                Write-Host "    Unable to find `"$($PKGTemplateName+"Monthly")`" and `"$($PKGTemplateName+"Sustainer")`" PKGs." -ForegroundColor Red
-                Write-Host "    Ensure PKGs are present before running this script" -ForegroundColor Red
-                Write-Log -sMessage "...FAIL. Exiting." -iTabs 3
-                $global:iExitCode = 9008
-                return $global:iExitCode
-            }
-            Write-Log $($pkginfo | ft | out-string) -iTabs 2              
-        }
-        catch{
-            Write-Log
-            Write-Host "    ...Failed!" -ForegroundColor Red
-            $global:iExitCode = 9003
-            return $global:iExitCode
-        }        
+        Write-Log      "1.4 Getting Deployment Package Information..." -iTabs 2                    
+            Write-Log $($pkgs | ft | out-string) -iTabs 2              
+            
     #endregion
     #region 1.5 Finalizing Pre-Checks      
     Write-Host "    1.5 - Finalizing Pre-Checks:" -Foreground Cyan          
