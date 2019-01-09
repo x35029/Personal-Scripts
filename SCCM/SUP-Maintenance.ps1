@@ -272,6 +272,17 @@ Function Show-Debug(){
    }
 
 }          ##End of Show-Debug function
+function ConvertTo-Array{
+    begin{
+        $output = @(); 
+    }
+    process{
+        $output += $_;   
+    }
+    end{
+        return ,$output;   
+    }
+}
 #endregion
 # --------------------------------------------------------------------------------------------
 
@@ -1334,7 +1345,7 @@ Function MainSub{
             return $global:iExitCode
         }    
         #>    
-        Write-Host "        Pre-Check to be implemented" -ForegroundColor Cyan
+        Write-Host "        Pre-Check to be implemented"
         Write-Log          "Pre-Check to be implemented" -iTabs 3
     #endregion    
     #region 1.3 Querying Software Update Groups
@@ -1368,9 +1379,8 @@ Function MainSub{
                 Write-Log          "Checking if required SUGs are present." -iTabs 3   
                     #Gettings SUG Info         
                     try{
-                        $sugs = Get-CMSoftwareUpdateGroup | Where {$_.LocalizedDisplayName -like "$SUGTemplateName*"}                            
+                        $sugs = Get-CMSoftwareUpdateGroup | Where {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
                         $sugRpt = $sugs | Where {$_.LocalizedDisplayName -eq $SUGTemplateName+"Report"}
-
                         $sugSustainer = $sugs | Where {$_.LocalizedDisplayName -eq $SUGTemplateName+"Sustainer"}
                     }
                     #Error while getting SUG Info
@@ -1411,6 +1421,9 @@ Function MainSub{
                                 New-CMSoftwareUpdateGroup -Name "$($SUGTemplateName)Report"
                                 Write-Host "                $($SUGTemplateName)Report was created." -ForegroundColor Green
                                 Write-Log                  "$($SUGTemplateName)Report was created" -iTabs 5
+                                Write-Host "                Reloading SUG Array."
+                                Write-Log                  "Reloading SUG Array." -iTabs 5
+                                $sugs = Get-CMSoftwareUpdateGroup | Where {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
                             }    
                             catch{
                                 Write-Host "                Error while creating $($SUGTemplateName)Report. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -ForegroundColor Red
@@ -1450,6 +1463,9 @@ Function MainSub{
                                 New-CMSoftwareUpdateGroup -Name "$($SUGTemplateName)Sustainer"
                                 Write-Host "            $($SUGTemplateName)Sustainer was created." -ForegroundColor Green
                                 Write-Log              "$($SUGTemplateName)Sustainer was created" -iTabs 4
+                                Write-Host "                Reloading SUG Array."
+                                Write-Log                  "Reloading SUG Array." -iTabs 5
+                                $sugs = Get-CMSoftwareUpdateGroup | Where {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
                             }    
                             catch{
                                 Write-Host "            Error while creating $($SUGTemplateName)Sustainer. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -ForegroundColor Red
@@ -1467,9 +1483,8 @@ Function MainSub{
                 Write-Log          "Checking if required Deployment Packages are present." -iTabs 3
                     #Getting Deployment Package Info 
                     try{
-                        $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "$PKGTemplateName*"}
+                        $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
                         $pkgMonth     = $pkgs | Where {$_.Name -eq "$($PKGTemplateName)Monthly"}
-
                         $pkgSustainer = $pkgs | Where {$_.Name -eq "$($PKGTemplateName)Sustainer"}   
                     }
                     #Error while getting Deployment Package Info
@@ -1520,6 +1535,9 @@ Function MainSub{
                                 New-CMSoftwareUpdateDeploymentPackage -Name "$($PKGTemplateName)Monthly" -Path "$sharePath" -Priority High
                                 Write-Host "            $($PKGTemplateName)Monthly was created." -ForegroundColor Green
                                 Write-Log              "$($PKGTemplateName)Monthly was created" -iTabs 4
+                                Write-Host "            Updating Package Array" 
+                                Write-Log              "Updating Package Array" -iTabs 4
+                                $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
                             }    
                             catch{
                                 Write-Host "            Error while creating $($PKGTemplateName)Monthly. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -ForegroundColor Red
@@ -1570,6 +1588,9 @@ Function MainSub{
                                 New-CMSoftwareUpdateDeploymentPackage -Name "$($PKGTemplateName)Sustainer" -Path $sharePath -Priority High
                                 Write-Host "            $($PKGTemplateName)Sustainer was created." -ForegroundColor Green
                                 Write-Log              "$($PKGTemplateName)Sustainer was created" -iTabs 4
+                                Write-Host "            Updating Package Array" 
+                                Write-Log              "Updating Package Array" -iTabs 4
+                                $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
                             }    
                             catch{
                                 Write-Host "            Error while creating $($PKGTemplateName)Sustainer. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -ForegroundColor Red
@@ -1581,24 +1602,22 @@ Function MainSub{
                             }
                         }                      
                     }                    
-            #endregion      
-        Write-Host    
-        Write-Log -iTabs 1
-    #endregion
-    #region 1.4 Querying Package Sizes        
-        Write-Host "    1.4 Getting Deployment Package Information..."
-        Write-Log      "1.4 Getting Deployment Package Information..." -iTabs 2                    
-            Write-Log $($pkgs | ft | out-string) -iTabs 2              
-            
-    #endregion
+            #endregion    
+    #endregion    
     #region 1.5 Finalizing Pre-Checks      
-    Write-Host "    1.5 - Finalizing Pre-Checks:" -Foreground Cyan          
+    Write-Host "    1.4 - Finalizing Pre-Checks:" -Foreground Cyan          
     Write-Host
-    Write-Host "SUG Information"
-    $sugInfo | ft
+    Write-Host "SUG Information - These SUGs will be evaluated/changed by this script."
+    $sugs | Select-Object -Property CI_ID,LocalizedDisplayName,DateCreated,NumberOfUpdates,ContainsExpiredUpdates,ContainsSupersededUpdates | ft
+    $initNumUpdates = ($sugs | Measure-Object -Property NumberofUpdates -Sum).Sum
+    Write-Host "Total Number of Updates: "$initNumUpdates -ForegroundColor Yellow
+    $initNumSugs = $sugs.Count
+    Write-Host "Total Number of SUGs: "$initNumSugs -ForegroundColor Yellow
     Write-Host
-    Write-Host "Package Information"
-    $pkgInfo |ft    
+    Write-Host "Package Information - These PKGs will be evaluated/changed by this script."
+    $pkgs | Select-Object -Property PackageID,Name,PackageSize,PkgSourcePath,Priority,SourceVersion,SourceDate | ft
+    $initPkgSize = ($pkgs | Measure-Object -Property PackageSize -Sum).Sum
+    Write-Host "Total Space used by Packages: "$initPkgSize -ForegroundColor Yellow
     Write-Host
     Write-Log "Pre-Checks are complete. Script will make environment changes in the next interaction. Getting User confirmation to proceed" -iTabs 2
     do{
