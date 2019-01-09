@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<NetworkShareSettings clsid="{520870D8-A6E7-47e8-A8D8-E6A4E76EAEC2}"><NetShare clsid="{2888C5E7-94FC-4739-90AA-2C1536D68BC0}" image="2" name="Data" changed="2018-11-21 12:40:54" uid="{6C995283-DC03-4EFC-922F-F3CD1C43F46C}"><Properties action="U" name="Data" path="\\sccm01\Data" comment="" allRegular="0" allHidden="0" allAdminDrive="0" limitUsers="NO_CHANGE" abe="NO_CHANGE"/></NetShare>
+</NetworkShareSettings>

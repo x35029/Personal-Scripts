@@ -1,0 +1,2 @@
+﻿Install-WindowsFeature AD-Domain-Services -IncludeManagementTools
+Install-ADDSForest -DomainName pLab.varandas.com -DomainMode WinThreshold -ForestMode WinThreshold -DatabasePath "E:\NTDS" -SysvolPath "E:\SYSVOL" -LogPath "E:\Logs" -InstallDNS -DomainNetbiosName PLAB
