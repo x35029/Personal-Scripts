@@ -99,9 +99,7 @@ Function HowTo-Script(){
 #            9009 - Error evaluating Sustainer SUG
 #            9010 - Error evaluating Report SUG
 #            9011 - Script executed with wrong parameters
-#            9012 - Error getting ADR information
-#            9013 - Error getting SUG Information
-#            9014 - Error getting Deployment Package info
+#            9012 - Error getting Software Update Information from SCCM
 # 
 # Output: 
 #    
@@ -1421,7 +1419,7 @@ Function MainSub{
             #region Checking Basic Packages (Monthly and Sustainer)                
                 Write-Log -iTabs 3 "Checking if required Deployment Packages are present." -bConsole $true
                     #Getting Deployment Package Info 
-                    try{
+                    try{                        
                         $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
                         $pkgMonth     = $pkgs | Where {$_.Name -eq "$($PKGTemplateName)Monthly"}
                         $pkgSustainer = $pkgs | Where {$_.Name -eq "$($PKGTemplateName)Sustainer"}   
@@ -1562,8 +1560,7 @@ Function MainSub{
         Write-Log -iTabs 3 "Above you have the list of Packages and Software Update Groups which will be managed by this script." -bConsole $true
         Write-Log -iTabs 3 "Review the list above and make sureare indeed the right targets for actions." -bConsole $true
         Write-Log -iTabs 3 "Script will make environment changes in the next interaction" -ForegroundColor Yellow
-        $answer = Read-Host "                                  Do you want to proceed? [Y/n]"
-        Write-Host
+        $answer = Read-Host "                                  Do you want to proceed? [Y/n]"        
     } while (($answer -ne "Y") -and ($answer -ne "n"))
     if ($answer -eq "n"){
         Write-Log -iTabs 3 "User Aborting script." -bConsole $true -sColor red
@@ -1574,148 +1571,122 @@ Function MainSub{
         Write-Log -iTabs 2 "User confirmation received." 
     }
     #endregion
-    Write-Log -iTabs 1 "Completed 1 - Pre-Checks." -bConsole $true -sColor Cyan
-    
+    Write-Log -iTabs 1 "Completed 1 - Pre-Checks." -bConsole $true -sColor Cyan    
     Write-Log -iTabs 0 -bConsole $true
 #endregion
 # ===============================================================================================================================================================================
 
 # ===============================================================================================================================================================================
 #region 2_EXECUTION
-    Write-Log -sMessage "Starting 2 - Execution." -iTabs 1  
-    Write-Host          "Starting 2 - Execution." -ForegroundColor Cyan -BackgroundColor Black            
-    #region 2.1 Review all Monthly SUGs, removing Expired or Superseded KBs. KBs older than 1 year will be moved to Sustainer.
-        Write-Host "2.1 - Review all Monthly SUGs, removing Expired or Superseded KBs. KBs older than 1 year will be moved to Sustainer" -ForegroundColor Cyan
-        Write-Log  "2.1 - Review all Monthly SUGs, removing Expired or Superseded KBs. KBs older than 1 year will be moved to Sustainer" -iTabs 2
-        Write-Host
-        $sugInfo = Get-cmsoftwareupdategroup | Where {$_.LocalizedDisplayName -like "$SUGTemplateName*" -and $_.LocalizedDisplayName -ne $SUGTemplateName+'Report' -and $_.LocalizedDisplayName -ne $SUGTemplateName+'Sustainer'}                 
-                          
+    Write-Log -iTabs 1 "Starting 2 - Execution."   -bConsole $true -sColor cyan    
+    #region 2.1 Review all Monthly SUGs, removing Expired or Superseded KBs. KBs older than 1 year will be moved to Sustainer.        
+        Write-Log -iTabs 2 "2.1 - Review all Monthly SUGs, removing Expired or Superseded KBs. KBs older than 1 year will be moved to Sustainer"-bConsole $true -sColor cyan        
         $timeMonthSuperseded=$(Get-Date).AddDays(-$timeMonthSuperseded)
         $tSustainerAge=$(Get-Date).AddDays(-$timeSustainerAge)
         $sugCount=1
-        foreach ($sug in $suginfo){        
-            Write-Host "    ($sugCount of $($suginfo.Count)) Evaluating SUG: $($sug.LocalizedDisplayName)."
-            Write-Log      "($sugCount of $($suginfo.Count)) Evaluating SUG: $($sug.LocalizedDisplayName)." -iTabs 3
+        foreach ($sug in $sugs){                    
+            Write-Log -iTabs 3 "($sugCount/$($sugs.Count)) Evaluating SUG: $($sug.LocalizedDisplayName)." -bConsole $true
             #Skip if Report SUG
-            if ($sug.LocalizedDisplayName -eq $($SUGTemplateName+"Report")){
-                Write-Host "    Skipping Report SUG at this moment. No Action will be taken."
-                Write-Log      "Skipping Report SUG at this moment. No Action will be taken." -iTabs 3
+            if ($sug.LocalizedDisplayName -eq $($SUGTemplateName+"Report")){                
+                Write-Log -iTabs 4 "Skipping Report SUG at this moment. No Action will be taken." -bConsole $true
             }
             #Skip if Sustainer SUG
-            elseif (($sug.LocalizedDisplayName -eq $($SUGTemplateName+"Sustainer"))){
-                Write-Host "    Skipping Sustainer SUG at this moment. No Action will be taken."
-                Write-Log      "Skipping Sustainer SUG at this moment. No Action will be taken." -iTabs 3
+            elseif (($sug.LocalizedDisplayName -eq $($SUGTemplateName+"Sustainer"))){                
+                Write-Log -iTabs 4 "Skipping Sustainer SUG at this moment. No Action will be taken." -bConsole $true
             }
             #if SUG is new ( less than 35 days) remove Expired and Superseded KBs Only
-            elseif ($sug.DateCreated -gt $timeMonthSuperseded){                
-                Write-Host "    New SUG - Removing Expired KBs."
-                Write-Log      "New SUG - Removing Expired KBs." -iTabs 3
-                UpdateGroupPairMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -HandleAgedUpdates $false -NumberofDaystoKeep $timeSustainerAge -PurgeExpired $true -PurgeSuperseded $false
+            elseif ($sug.DateCreated -gt $timeMonthSuperseded){                                
+                Write-Log -iTabs 4 "New SUG (less than $timeMonthSuperseded days old) - Script will only remove Expired KBs." 
+                #UpdateGroupPairMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -HandleAgedUpdates $false -NumberofDaystoKeep $timeSustainerAge -PurgeExpired $true -PurgeSuperseded $false
             }
             #if SUG is stable (DateCreate is lesser than Today-35 days and greater than Today-365 days) remove Expired and Superseded KBs Only. Delete Deployments to small DGs
-            elseif ($sug.DateCreated -gt $tSustainerAge){                
-                Write-Host "    Removing Expired and Superseeded KBs. Deployments to initial DGs will be deleted."
-                Write-Log      "Removing Expired and Superseeded KBs. Deployments to initial DGs will be deleted." -iTabs 3
-                UpdateGroupPairMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -HandleAgedUpdates $false -NumberofDaystoKeep $timeSustainerAge -PurgeExpired $true -PurgeSuperseded $true
+            elseif ($sug.DateCreated -gt $tSustainerAge){                                
+                Write-Log -iTabs 4 "Removing Expired and Superseeded KBs. Deployments to initial DGs will be deleted." 
+                #UpdateGroupPairMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -HandleAgedUpdates $false -NumberofDaystoKeep $timeSustainerAge -PurgeExpired $true -PurgeSuperseded $true
             }
             #if SUG is old (DateCreate is lesser than Today-365 days) remove Expired and Superseded KBs Only. Move valid KBs to Sustainer and Delete SUG
-            elseif ($sug.DateCreated -lt $tSustainerAge){                
-                Write-Host "    Removing Expired, Superseeded and Aged KBs. Aged KBs will be moved into Sustainer SUG. Deployments to initial DGs will be deleted."
-                Write-Log      "Removing Expired KBs and Superseeded KBs, Moving year-old Valid KBs into Sustainer SUG. Deployments to initial DGs will be deleted." -iTabs 3
-                UpdateGroupPairMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -HandleAgedUpdates $true -NumberofDaystoKeep $timeSustainerAge -PurgeExpired $true -PurgeSuperseded $true
+            elseif ($sug.DateCreated -lt $tSustainerAge){                                
+                Write-Log -iTabs 4 "Removing Expired KBs and Superseeded KBs, Moving year-old Valid KBs into Sustainer SUG. Deployments to initial DGs will be deleted." -bConsole $true
+                #UpdateGroupPairMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -HandleAgedUpdates $true -NumberofDaystoKeep $timeSustainerAge -PurgeExpired $true -PurgeSuperseded $true
             }            
             $sugcount++
-        }
-        Write-Host
+        }        
     #endregion
-    #region 2.2 Review Sustainer SUG, removing Expired or Superseded KBs.
-        Write-Host "Execution 2.2 - Review Sustainer SUG, removing Expired or Superseded KBs." -ForegroundColor Cyan
-        Write-Log  "2.2 - Review Sustainer SUG, removing Expired or Superseded KBs." -iTabs 2
-        Write-Host
+    #region 2.2 Review Sustainer SUG, removing Expired or Superseded KBs.        
+        Write-Log -iTabs 2 "2.2 - Review Sustainer SUG, removing Expired or Superseded KBs." -bConsole $true -sColor cyan        
         try{
-            SingleUpdateGroupMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -ManagedUpdateGroup $($($SUGTemplateName)+"Sustainer") -PurgeSuperseded $true -PurgeExpired $true -HandleAgedUpdates $false
+            #SingleUpdateGroupMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -ManagedUpdateGroup $($($SUGTemplateName)+"Sustainer") -PurgeSuperseded $true -PurgeExpired $true -HandleAgedUpdates $false
         }
-        catch {
-            Write-Host "    Error while processing Sustainer Eval. Aborting script."
-            Write-Log      "Error while processing Sustainer Eval. Aborting script." -iTabs 3
+        catch {            
+            Write-Log -iTabs 3 "Error while processing Sustainer Eval. Aborting script." -bConsole $true -sColor red
             $global:iExitCode = 9009
             return $global:iExitCode
-        }
-        write-host
+        }        
     #endregion
-    #region 2.3 Review Report SUG, removing Expired or Superseded KBs.
-        Write-Host "Execution 2.3 - Review Report SUG, removing Expired or Superseded KBs." -ForegroundColor Cyan
-        Write-Log  "2.3 - Review Report SUG, removing Expired or Superseded KBs." -iTabs 2
-        Write-Host
+    #region 2.3 Review Report SUG, removing Expired or Superseded KBs.        
+        Write-Log  -iTabs 2 "2.3 - Review Report SUG, removing Expired or Superseded KBs." -bConsole $true -sColor cyan        
         try{
-            SingleUpdateGroupMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -ManagedUpdateGroup $($($SUGTemplateName)+"Report") -PurgeSuperseded $true -PurgeExpired $true -HandleAgedUpdates $false
+            #SingleUpdateGroupMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -ManagedUpdateGroup $($($SUGTemplateName)+"Report") -PurgeSuperseded $true -PurgeExpired $true -HandleAgedUpdates $false
         }
-        catch {
-            Write-Host "    Error while processing Report SUG Eval. Aborting script."
-            Write-Log      "Error while processing Report SUG Eval. Aborting script." -iTabs 3
+        catch {            
+            Write-Log -iTabs 3 "Error while processing Report SUG Eval. Aborting script." -bConsole $true -sColor red
             $global:iExitCode = 9010
             return $global:iExitCode
-        }    
-        write-host
+        }            
     #endregion
-    #region 2.4 Review all SUGs, and ensure all KBs are member of <SUG_NAME>-Report SUG.    
-    Write-Host "Execution 2.4 - Review all SUGs, and ensure all deployed KBs are member of $($SUGTemplateName)Report SUG." -ForegroundColor Cyan
-    Write-Log  "2.4 - Review all SUGs, and ensure all valid KBs are member of $($SUGTemplateName)Report SUG." -iTabs 2    
-    write-host
+    #region 2.4 Review all SUGs, and ensure all KBs are member of <SUG_NAME>-Report SUG.        
+    Write-Log -iTabs 2 "2.4 - Review all SUGs, and ensure all valid KBs are member of $($SUGTemplateName)Report SUG." -bConsole $true -sColor cyan    
     try{
-        ReportingSoftwareUpdateGroupMaintenance -SiteServerName $SMSProvider -SiteCode $SCCMSite -ReportingUpdateGroup $($SUGTemplateName+"Report") -DeploySUGName $SUGTemplateName
+        #ReportingSoftwareUpdateGroupMaintenance -SiteServerName $SMSProvider -SiteCode $SCCMSite -ReportingUpdateGroup $($SUGTemplateName+"Report") -DeploySUGName $SUGTemplateName
     }    
-    catch{
-        Write-Host "    Error while processing Report SUG. Aborting script."
-        Write-Log      "Error while processing Report SUG. Aborting script." -iTabs 3
+    catch{        
+        Write-Log -iTabs 3 "Error while processing Report SUG. Aborting script." -bConsole $true -sColor red
         $global:iExitCode = 9006
         return $global:iExitCode
-    }
-    write-host
+    }    
     #endregion    
-    #region 2.5 Remove unused KBs from Packages (KBs not deployed) and Reports KBs deployed not in any package
-    Write-Host "Execution 2.5 Remove unused KBs from Packages (KBs not deployed) and list KBs deployed not in any package" -ForegroundColor Cyan
-    Write-Log  "2.5 Remove unused KBs from Packages (KBs not deployed) and list KBs deployed not in any package" -iTabs 2
-    write-host
+    #region 2.5 Remove unused KBs from Packages (KBs not deployed) and Reports KBs deployed not in any package    
+    Write-Log -iTabs 2 "2.5 Remove unused KBs from Packages (KBs not deployed) and list KBs deployed not in any package" -bConsole $true -sColor cyan    
     try{
-        MaintainSoftwareUpdateGroupDeploymentPackages -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -PkgName $PKGTemplateName -SugName $SUGTemplateName
+        #MaintainSoftwareUpdateGroupDeploymentPackages -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -PkgName $PKGTemplateName -SugName $SUGTemplateName
     }
-    catch{
-        Write-Host "    Error while handling packages" -ForegroundColor Red
-        Write-Log      "Error while handling packages" -iTabs 3
-    }
-    Write-Host
+    catch{     
+        Write-Log -iTabs 3 "Error while handling packages" -bConsole $true -sColor red
+    }    
     #endregion    
-    #region 2.6 EvaluateNumberofUpdatesinGroups checking if SUGs are over 900 KBs limit
-    Write-Host "Execution 2.6 EvaluateNumberofUpdatesinGroups checking if SUGs are over 900 KBs limit" -ForegroundColor Cyan
-    Write-Log  "2.6 EvaluateNumberofUpdatesinGroups checking if SUGs are over 900 KBs limit" -iTabs 2
-    write-host
+    #region 2.6 EvaluateNumberofUpdatesinGroups checking if SUGs are over 900 KBs limit    
+    Write-Log -iTabs 2 "2.6 EvaluateNumberofUpdatesinGroups checking if SUGs are over 900 KBs limit" -bConsole $true -sColor cyan    
     try{
-        EvaluateNumberOfUpdatesinGRoups -SiteServerName $SMSProvider -SiteCode $SCCMSite -SugName $SUGTemplateName
+        #EvaluateNumberOfUpdatesinGRoups -SiteServerName $SMSProvider -SiteCode $SCCMSite -SugName $SUGTemplateName
     }
-    catch{
-        Write-Host "    Error while evaliating SUGs" -ForegroundColor Red
-        Write-Log      "Error while evaliating SUGs" -iTabs 3
-    }
-    Write-Host
-    #endregion
-    Write-Host          "Completed 2 - Execution." -ForegroundColor Cyan -BackgroundColor Black            
-    Write-Log -sMessage "Completed 2 - Execution." -iTabs 1  
-    Write-Log -sMessage "" -iTabs 1    
+    catch{        
+        Write-Log -iTabs 3 "Error while evaliating SUGs" -bConsole $true -sColor red
+    }    
+    #endregion    
+    Write-Log -iTabs 1 "Completed 2 - Execution." -bConsole $true -sColor cyan
+    Write-Log -iTabs 0 -bConsole $true
 #endregion
 # ===============================================================================================================================================================================
         
 # ===============================================================================================================================================================================
 #region 3_POST-CHECKS
 # ===============================================================================================================================================================================
-    Write-Log -sMessage "Starting 3 - Post-Checks." -iTabs 1   
-    Write-Host          "Starting 3 - Post-Checks." -ForegroundColor Cyan -BackgroundColor Black            
-    #get current number of sugs and number of KBs in them
-    #get size of deployment packages
-    #get number of updates in reporting group
-    Write-Host          "Completed 3 - Post-Checks." -ForegroundColor Cyan -BackgroundColor Black            
-    Write-Log -sMessage "Completed 3 - Post-Checks." -iTabs 1  
-    Write-Log -sMessage "" -iTabs 1 
+    Write-Log -iTabs 1 "Starting 3 - Post-Checks." -bConsole $true -sColor cyan
+    #getting current software update information
+    Write-Log -itabs 2 "Refreshing SUG and PKG array" -bConsole $true
+        try{
+            $sugs = Get-CMSoftwareUpdateGroup | Where {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
+            $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
+        }
+        catch{
+            Write-Log -itabs 2 "Error while refreshign arrays. Post-Checks won't be possible/reliable" -bConsole $true -sColor $red
+            $global:iExitCode = 9012
+            return $global:iExitCode
+        }
+    #getting number of sugs, number of updates (in report sug, in sustainer sug, in all other sugs) and size of packages.
+    #get number of updates in reporting group    
+    Write-Log -iTabs 1 "Completed 3 - Post-Checks." -bConsole $true -sColor cyan
+    Write-Log -iTabs 0 "" -bConsole $true
 #endregion
 # ===============================================================================================================================================================================
 
