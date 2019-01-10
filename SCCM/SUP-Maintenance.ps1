@@ -272,6 +272,48 @@ function ConvertTo-Array{
 
 # --------------------------------------------------------------------------------------------
 #region SUP-FUNCTIONS
+Function Test-SccmUpdateExpired{
+    param(
+        [Parameter(Mandatory = $true)]
+        $UpdateId,
+        $ExpUpdates
+    )
+    
+    # If the WMI query returns more than 0 instances (should NEVER be more than 1 at most), then the update is expired.
+    if ($ExpUpdates -match $Updateid){            
+        return $true
+    }
+    else{          
+        return $false        
+    }
+}
+Function Test-SccmUpdateSuperseded{
+    param(
+        [Parameter(Mandatory = $true)]
+        $UpdateId,
+        $SupUpdate
+    )            
+    If ($SupUpdate -match $UpdateId){            
+        return $true
+    }
+    else{
+        return $false
+    }
+}
+Function Test-SCCMUpdateAge{
+    param(
+        [Parameter(Mandatory = $true)]
+        $UpdateId,            
+        $OldUpdates
+    )
+        
+    If ($OldUpdates -match $UpdateId){            
+        return $true
+    }
+    else{
+        return $false
+    }
+}
 Function ReportingSoftwareUpdateGroupMaintenance{
 # This script is designed to ensure consistent membership of the reporting software update group.
 # In this version it is assumed there is only one reporting software update group.  A reporting software
@@ -337,7 +379,7 @@ Function ReportingSoftwareUpdateGroupMaintenance{
     Write-Host "    $ReportingUpdateGroup now has $finalRptUpdates updates."
     Write-Log      "$ReportingUpdateGroup now has $finalRptUpdates updates." -iTabs 4
 }
-function UpdateGroupPairMaintenance{
+function Review-SUGPair{
 # This script is designed to automate the routine maintenance of software update group pairs.
 # Specifically, the script will take two software update groups as input - one that contains
 # the most recent set of updates for deployment and another that represents the group of persistent
@@ -357,15 +399,20 @@ function UpdateGroupPairMaintenance{
         [Parameter(Mandatory = $true)]
         $CurrentUpdateGroup,
         [Parameter(Mandatory = $true)]
+        $CurUpdList,
+        [Parameter(Mandatory = $true)]
         $PersistentUpdateGroup,
+        [Parameter(Mandatory = $true)]
+        $PerUpdList,
         [Parameter(Mandatory = $false)]  
-        $HandleAgedUpdates=$false,
-        [Parameter(Mandatory = $false)]  
-        $NumberofDaystoKeep=365,
+        $HandleAgedUpdates=$false,               
+        $aAgedUpdates, 
         [Parameter(Mandatory = $false)]
-        $PurgeExpired=$false,
+        $PurgeExpired=$false,        
+        $aExpUpdates,
         [Parameter(Mandatory = $false)]
-        $PurgeSuperseded=$false
+        $PurgeSuperseded=$false,
+        $aSupersededUpdates
         )
 
     If ($CurrentUpdateGroup -eq $PersistentUpdateGroup){
@@ -374,112 +421,6 @@ function UpdateGroupPairMaintenance{
     }         
     # Credit to Tevor Sullivan for this function.  Modified from his original for use here.
     # http://trevorsullivan.net/2011/11/29/configmgr-cleanup-software-updates-objects/
-    Function Test-SccmUpdateExpired{
-        param(
-            [Parameter(Mandatory = $true)]
-            $UpdateId,
-            [Parameter(Mandatory = $true)]
-            $TakeAction
-        )
-
-        #Test to see if we should purge expired updates based on input.  If not, return false
-        If ($TakeAction -eq $false)
-            {            
-            return $false
-            }
-
-        # Find update that is expired with the specified CI_ID (unique ID) value
-        $ExpiredUpdateQuery = "select * from SMS_SoftwareUpdate where IsExpired = 'true' and CI_ID = '$UpdateId'"
-        $Update = @(Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Query $ExpiredUpdateQuery)
-  
-        # If the WMI query returns more than 0 instances (should NEVER be more than 1 at most), then the update is expired.
-        if ($Update.Count -gt 0)
-            {
-            
-            return $true
-            }
-        else
-            {
-            
-            return $false
-            }
-    }
-    Function Test-SccmUpdateSuperseded{
-        param(
-            [Parameter(Mandatory = $true)]
-            $UpdateId,
-            [Parameter(Mandatory = $true)]
-            $TakeAction
-        )
-
-        #Test to see if we should purge superseded updates based on input.  If not, return false
-        If ($TakeAction -eq $false)
-            {
-            
-            return $false
-            }
-
-        # Find update that is superseded with the specified CI_ID (unique ID) value
-        # Changing the format of Get-WmiObject because for some reason trying to pull
-        # IsSuperseded information using the same query format as is used for checking
-        # Expired updates fails here
-        $Update = Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Class SMS_SoftwareUpdate -filter "CI_ID='$UpdateID'"
-        
-        # If the WMI query returns more than 0 instances (should NEVER be more than 1 at most), then the update is expired.
-        If ($Update.IsSuperseded -eq "True")
-            {
-            
-            return $true
-            }
-        else
-            {
-            return $false
-            }
-    }
-    Function Test-SCCMUpdateAge{
-        param(
-            [Parameter(Mandatory = $true)]
-            $UpdateId,
-            [Parameter(Mandatory = $true)]
-            $AgeThreshold,
-            [Parameter(Mandatory = $true)]
-            $TakeAction,
-            [Parameter(Mandatory = $true)]
-            $PersistentGroup
-        )
-
-        #Test to see if we should handle aged updates based on input.  If not, return false
-        If ($TakeAction -eq $false)
-            {
-            
-            return $false
-            }
-
-        # Find update that is older than the specified threshold.  This will be done
-        # by first pulling each update remaining in the list and querying the DateLastModified
-        # property from WMI.  This property will then be converted to a proper datetime format
-        # and then simple mathmatical comparison can be done to test the age.  If the update age
-        # is outside of the threshold remove from the current update group and store for later
-        # move into persistent update group.
-        $AgedUpdateQuery = "select * from SMS_SoftwareUpdate where CI_ID = '$UpdateId'"
-        $Update = @(Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Query $AgedUpdateQuery)
-        $UpdateDate = [System.Management.ManagementDateTimeConverter]::ToDateTime($Update.DatePosted)
-    
-        if ($UpdateDate -lt $AgeThreshold){            
-            if ($Action -eq "Run"){
-                Add-CMSoftwareUpdateToGroup -SoftwareUpdateGroupName "$PersistentGroup" -SoftwareUpdateID $Update.CI_ID            
-            }
-            
-            Write-Host "        KB$($Update.ArticleID) added to Sustainer: (CI_ID:$UpdateId)" -ForegroundColor DarkGreen
-            Write-Log          "KB$($Update.ArticleID) added to Sustainer: (CI_ID:$UpdateId)" -iTabs 4
-            return $true
-            }
-        else
-            {
-            
-            return $false
-            }
-    }
 
     # Get current date and calculate the aged update threshold based on either 365
     # days or the value passed in.
@@ -572,97 +513,7 @@ Function SingleUpdateGroupMaintenance{
     
     # Credit to Tevor Sullivan for this function.  Modified from his original for use here.
     # http://trevorsullivan.net/2011/11/29/configmgr-cleanup-software-updates-objects/
-    Function Test-SccmUpdateExpired{
-        param(
-            [Parameter(Mandatory = $true)]
-            $UpdateId,
-            [Parameter(Mandatory = $true)]
-            $TakeAction
-        )
-
-        #Test to see if script should purge expired updates based on input.  If not, return false.
-        If ($TakeAction -eq $false){
-            #write-host ("Configured to not evaluate update expired function")
-            return $false
-        }
-
-        # Find update that is expired with the specified CI_ID (unique ID) value
-        $ExpiredUpdateQuery = "select * from SMS_SoftwareUpdate where IsExpired = 'true' and CI_ID = '$UpdateId'"
-        $Update = @(Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Query $ExpiredUpdateQuery)
-  
-        # If the WMI query returns more than 0 instances (should NEVER be more than 1 at most), then the update is expired.
-        if ($Update.Count -gt 0){
-            #Write-host ("    Cleaned expired software update with title: " + $Update[0].LocalizedDisplayName )
-            return $true
-        }
-        else{
-            #write-host ("Returning False from update expired function")
-            return $false
-        }
-    }
-    Function Test-SccmUpdateSuperseded{
-        param(
-            [Parameter(Mandatory = $true)]
-            $UpdateId,
-            [Parameter(Mandatory = $true)]
-            $TakeAction
-        )
     
-        #Test to see if script should purge superseded updates based on input.  If not, return false
-        If ($TakeAction -eq $false){
-            #write-host ("Configured to not evaluate update supersedence function")
-            return $false
-        }
-
-        # Find update that is superseded with the specified CI_ID (unique ID) value
-        # Changing the format of Get-WmiObject because for some reason trying to pull
-        # IsSuperseded information using the same query format as is used for checking
-        # Expired updates fails here.
-        $Update = Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Class SMS_SoftwareUpdate -filter "CI_ID='$UpdateID'"
-        
-        # If the WMI query returns more than 0 instances (should NEVER be more than 1 at most), then the update is expired.
-        If ($Update.IsSuperseded -eq "True"){
-            #Write-host ("    Cleaned superseded software update with title: " + $Update.LocalizedDisplayName)
-            return $true
-        }
-        else{
-            #write-host ("Returning False from update supersedence function")
-            return $false
-        }
-    }
-    Function Test-SCCMUpdateAge{
-        param(
-            [Parameter(Mandatory = $true)]
-            $UpdateId,
-            [Parameter(Mandatory = $true)]
-            $AgeThreshold,
-            [Parameter(Mandatory = $true)]
-            $TakeAction
-        )
-
-        #Test to see if script should handle aged updates based on input.  If not, return false
-        If ($TakeAction -eq $false){
-            #write-host ("Configured to not evaluate update age function")
-            return $false
-        }
-
-        # Find updates that are older than the specified threshold.  This will be done
-        # by first pulling each update remaining in the list and querying the DateLastModified
-        # property from WMI.  This property will then be converted to a proper datetime format
-        # and then simple mathmatical comparison can be done to test the age.  If the update age
-        # is outside of the threshold remove from the update group.
-        $AgedUpdateQuery = "select * from SMS_SoftwareUpdate where CI_ID = '$UpdateId'"
-        $Update = @(Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Query $AgedUpdateQuery)
-        $UpdateDate = [System.Management.ManagementDateTimeConverter]::ToDateTime($Update.DateLastModified)
-    
-        if ($UpdateDate -lt $AgeThreshold){
-            #Write-host ("    Cleaned a software update older than age threshold with title: " + $Update[0].LocalizedDisplayName)
-            return $true
-        }
-        else{
-            return $false
-        }
-    }
     # Get current date and calculate the aged update threshold based on either 360
     # days or the value specified.
     $CurrentDate = Get-Date  
@@ -1533,7 +1384,46 @@ Function MainSub{
                             }
                         }                      
                     }                    
-            #endregion    
+            #endregion  
+            #region Query all Expired Updates            
+            Write-Log -iTabs 3 "Getting all Expired KBs from SCCM WMI." -bConsole $true
+            try{
+                $ExpiredUpdates = Get-CMSoftwareUpdate -IsExpired $true -fast | Select -Property CI_ID
+                Write-Log -iTabs 4 "Expired KBs: $($ExpiredUpdates.Count)" -bConsole $true -sColor Yellow
+            }
+            catch{
+                Write-Log -iTabs 4 "Error getting Update info from SCCM WMI." -bConsole $true -sColor red
+                Write-Log -iTabs 4 "Aborting script."  -bConsole $true -sColor red
+                $global:iExitCode = 9012
+                return $global:iExitCode
+            }
+            #endregion
+            #region Query All Superseded Updates
+            Write-Log -iTabs 3 "Getting all Superseded KBs from SCCM WMI." -bConsole $true
+            try{
+                $SupersededUpdates = Get-CMSoftwareUpdate -IsSuperseded $true -fast | Select -Property CI_ID
+                Write-Log -iTabs 4 "Superseded KBs: $($SupersededUpdates.Count)" -bConsole $true -sColor Yellow
+            }
+            catch{
+                Write-Log -iTabs 4 "Error getting Update info from SCCM WMI." -bConsole $true -sColor red
+                Write-Log -iTabs 4 "Aborting script."  -bConsole $true -sColor red
+                $global:iExitCode = 9012
+                return $global:iExitCode
+            }
+            #endregion
+            #region Query All Aged Updates            
+            Write-Log -iTabs 3 "Getting all Aged KBs from SCCM WMI." -bConsole $true
+            try{
+                $AgedUpdates = Get-CMSoftwareUpdate -DatePostedMax $(Get-Date).AddDays(-$timeSustainerAge) -IsSuperseded $false -IsExpired $false -fast | Select -Property CI_ID
+                Write-Log -iTabs 4 "Aged KBs: $($AgedUpdates.Count)" -bConsole $true -sColor Yellow
+            }
+            catch{
+                Write-Log -iTabs 4 "Error getting Update info from SCCM WMI." -bConsole $true -sColor red
+                Write-Log -iTabs 4 "Aborting script."  -bConsole $true -sColor red
+                $global:iExitCode = 9012
+                return $global:iExitCode
+            }
+            #endregion
     #endregion    
     #region 1.5 Finalizing Pre-Checks      
     Write-Log -iTabs 2 "1.4 - Finalizing Pre-Checks:" -bConsole $true -sColor cyan    
@@ -1549,11 +1439,13 @@ Function MainSub{
         Write-Log -itabs 4 $pkgName -bConsole $true
     }    
     $initNumUpdates = ($sugs | Measure-Object -Property NumberofUpdates -Sum).Sum
-    Write-Log -itabs 3 "Total Number of Updates: $initNumUpdates" -bConsole $true -sColor yellow
+    Write-Log -itabs 3 "Number of Updates: $initNumUpdates" -bConsole $true -sColor yellow
+    $initRptNumUpdates = ($sugs | Where-Object {$_.LocalizedDisplayName -eq $SUGTemplateName+"Report"}).NumberofUpdates
+    Write-Log -itabs 3 "Number of Updates in Report SUG: $initRptNumUpdates" -bConsole $true -sColor yellow
     $initNumSugs = $sugs.Count
-    Write-Log -itabs 3 "Total Number of SUGs: $initNumSugs" -bConsole $true -sColor yellow
-    $initPkgSize = ($pkgs | Measure-Object -Property PackageSize -Sum).Sum
-    Write-Log -itabs 3 "Total Space used by Packages: $initPkgSize" -bConsole $true -sColor yellow
+    Write-Log -itabs 3 "Number of SUGs: $initNumSugs" -bConsole $true -sColor yellow
+    $initPkgSize = ($pkgs | Measure-Object -Property PackageSize -Sum).Sum/1024
+    Write-Log -itabs 3 "Space used by Packages: $initPkgSize MB" -bConsole $true -sColor yellow
     Write-Log -itabs 2 "Pre-Checks are complete. Script will make environment changes in the next interaction." -bConsole $true
     Write-Log -itabs 2 "Getting User confirmation to proceed"
     do{
@@ -1582,7 +1474,7 @@ Function MainSub{
     #region 2.1 Review all Monthly SUGs, removing Expired or Superseded KBs. KBs older than 1 year will be moved to Sustainer.        
         Write-Log -iTabs 2 "2.1 - Review all Monthly SUGs, removing Expired or Superseded KBs. KBs older than 1 year will be moved to Sustainer"-bConsole $true -sColor cyan        
         $timeMonthSuperseded=$(Get-Date).AddDays(-$timeMonthSuperseded)
-        $tSustainerAge=$(Get-Date).AddDays(-$timeSustainerAge)
+        
         $sugCount=1
         foreach ($sug in $sugs){                    
             Write-Log -iTabs 3 "($sugCount/$($sugs.Count)) Evaluating SUG: $($sug.LocalizedDisplayName)." -bConsole $true
@@ -1596,12 +1488,12 @@ Function MainSub{
             }
             #if SUG is new ( less than 35 days) remove Expired and Superseded KBs Only
             elseif ($sug.DateCreated -gt $timeMonthSuperseded){                                
-                Write-Log -iTabs 4 "New SUG (less than $timeMonthSuperseded days old) - Script will only remove Expired KBs." 
-                #UpdateGroupPairMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -HandleAgedUpdates $false -NumberofDaystoKeep $timeSustainerAge -PurgeExpired $true -PurgeSuperseded $false
+                Write-Log -iTabs 4 "New SUG - Script will only remove Expired KBs."  -bConsole $true
+                Review-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $false -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $false
             }
             #if SUG is stable (DateCreate is lesser than Today-35 days and greater than Today-365 days) remove Expired and Superseded KBs Only. Delete Deployments to small DGs
             elseif ($sug.DateCreated -gt $tSustainerAge){                                
-                Write-Log -iTabs 4 "Removing Expired and Superseeded KBs. Deployments to initial DGs will be deleted." 
+                Write-Log -iTabs 4 "Removing Expired and Superseeded KBs. Deployments to initial DGs will be deleted."  -bConsole $true
                 #UpdateGroupPairMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -HandleAgedUpdates $false -NumberofDaystoKeep $timeSustainerAge -PurgeExpired $true -PurgeSuperseded $true
             }
             #if SUG is old (DateCreate is lesser than Today-365 days) remove Expired and Superseded KBs Only. Move valid KBs to Sustainer and Delete SUG
@@ -1674,17 +1566,28 @@ Function MainSub{
     Write-Log -iTabs 1 "Starting 3 - Post-Checks." -bConsole $true -sColor cyan
     #getting current software update information
     Write-Log -itabs 2 "Refreshing SUG and PKG array" -bConsole $true
-        try{
-            $sugs = Get-CMSoftwareUpdateGroup | Where {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
-            $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
-        }
-        catch{
-            Write-Log -itabs 2 "Error while refreshign arrays. Post-Checks won't be possible/reliable" -bConsole $true -sColor $red
-            $global:iExitCode = 9012
-            return $global:iExitCode
-        }
-    #getting number of sugs, number of updates (in report sug, in sustainer sug, in all other sugs) and size of packages.
-    #get number of updates in reporting group    
+    try{
+        $sugs = Get-CMSoftwareUpdateGroup | Where {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
+        $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
+    }
+    catch{
+        Write-Log -itabs 2 "Error while refreshign arrays. Post-Checks won't be possible/reliable" -bConsole $true -sColor $red
+        $global:iExitCode = 9012
+        return $global:iExitCode
+    }
+    $finalNumUpdates = ($sugs | Measure-Object -Property NumberofUpdates -Sum).Sum
+    Write-Log -itabs 3 "Initial Number of Updates: $initNumUpdates" -bConsole $true -sColor Darkyellow
+    Write-Log -itabs 3 "Final Number of Updates: $initNumUpdates" -bConsole $true -sColor yellow
+    $finalRptNumUpdates = ($sugs | Where-Object {$_.LocalizedDisplayName -eq $SUGTemplateName+"Report"}).NumberofUpdates
+    Write-Log -itabs 3 "Initial Number of Updates in Report SUG: $initRptNumUpdates" -bConsole $true -sColor darkyellow
+    Write-Log -itabs 3 "Final Number of Updates in Report SUG: $initRptNumUpdates" -bConsole $true -sColor yellow
+    $finalNumSugs = $sugs.Count
+    Write-Log -itabs 3 "Initial Number of SUGs: $initNumSugs" -bConsole $true -sColor Darkyellow
+    Write-Log -itabs 3 "Final Number of SUGs: $finalNumSugs" -bConsole $true -sColor yellow
+    $finalPkgSize = ($pkgs | Measure-Object -Property PackageSize -Sum).Sum/1024
+    Write-Log -itabs 3 "Initial Space used by Packages: $initPkgSize MB" -bConsole $true -sColor Darkyellow
+    Write-Log -itabs 3 "Final Space used by Packages: $finalPkgSize MB" -bConsole $true -sColor yellow    
+     
     Write-Log -iTabs 1 "Completed 3 - Post-Checks." -bConsole $true -sColor cyan
     Write-Log -iTabs 0 "" -bConsole $true
 #endregion
