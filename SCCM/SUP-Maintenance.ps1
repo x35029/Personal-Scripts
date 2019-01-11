@@ -419,27 +419,9 @@ function Review-SUGPair{
         write-host ("The Current and Persistent update groups are the same group.  This is not allowed.  Exiting")
         exit
     }         
-    # Credit to Tevor Sullivan for this function.  Modified from his original for use here.
-    # http://trevorsullivan.net/2011/11/29/configmgr-cleanup-software-updates-objects/
-
-    # Get current date and calculate the aged update threshold based on either 365
-    # days or the value passed in.
-    $CurrentDate=Get-Date  
-    $CurrentDateLessKeepThreshold=$CurrentDate.AddDays(-$NumberofDaystoKeep)
-
-    # Retrieve the update group that was passed in as the current update group.
-    # These are the update groups where we will be performing maintenance.
-    $CurrentUpdateList = Get-WmiObject -Namespace root\sms\site_$($SiteCode) -Class SMS_AuthorizationList -ComputerName $SiteProviderServerName -filter "localizeddisplayname = '$CurrentUpdateGroup'"
-    $PersistentUpdateList = Get-WmiObject -Namespace root\sms\site_$($SiteCode) -Class SMS_AuthorizationList -ComputerName $SiteProviderServerName -filter "localizeddisplayname = '$PersistentUpdateGroup'"
-
-    #Process the Current Update Group 
-    $CurrentUpdateList = [wmi]"$($CurrentUpdateList.__PATH)" #There is a double _ in front of PATH
-    #write-host "$($CurrentUpdateList.localizeddisplayname) has $($CurrentUpdateList.Updates.Count) updates in it"
-
-    # Loop through each update in the current update group handling expired, superseded or age threshold per
-    # configuration.    
-    ForEach ($UpdateID in $CurrentUpdateList.Updates){               
-        If (Test-SccmUpdateExpired -UpdateID $UpdateID -TakeAction $PurgeExpired){            
+    
+    ForEach ($UpdateID in $CurUpdList){               
+        If (Test-SccmUpdateExpired -UpdateID $UpdateID){            
             $CurrentUpdateList.Updates = @($CurrentUpdateList.Updates | ? {$_ -ne $UpdateID})   
             Write-Host "        KB Expired removed from SUG. (CI_ID:$UpdateId)." -ForegroundColor DarkGray
             Write-Log          "KB Expired removed from SUG. (CI_ID:$UpdateId)." -iTabs 4                        
@@ -1627,5 +1609,4 @@ Else {
 }
 # Quiting with exit code
 Exit $global:iExitCode
-#lelele
 #endregion
