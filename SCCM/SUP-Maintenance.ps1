@@ -1627,4 +1627,5 @@ Else {
 }
 # Quiting with exit code
 Exit $global:iExitCode
+
 #endregion
