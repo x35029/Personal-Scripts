@@ -380,17 +380,7 @@ Function ReportingSoftwareUpdateGroupMaintenance{
     Write-Log      "$ReportingUpdateGroup now has $finalRptUpdates updates." -iTabs 4
 }
 function Review-SUGPair{
-# This script is designed to automate the routine maintenance of software update group pairs.
-# Specifically, the script will take two software update groups as input - one that contains
-# the most recent set of updates for deployment and another that represents the group of persistent
-# updates being deployed.  The idea is that the first group will contain the current month or quarter
-# of updates while the persistent group will contain those updates that need to remain deployed to 
-# the environment in case unpatched systems are brought online.  The expectation though is the majority
-# of the environment will already have received the updates in the persistent group.  
-# This script will optionally handle scanning of both groups to remove expired or superseded patches 
-# and will scan the recent, or current, update group to identify updates over the age threshold that 
-# may should be moved to the persistend update group.  If the script is configured to handle aged updates
-# but no age threshold is specified then 90 days will be used.
+
     Param(
         [Parameter(Mandatory = $true)]
         $SiteProviderServerName,
@@ -419,50 +409,66 @@ function Review-SUGPair{
         write-host ("The Current and Persistent update groups are the same group.  This is not allowed.  Exiting")
         exit
     }         
-    
+    $updatesToRemove =@()
+    $updatesToMove   =@()
+
     ForEach ($UpdateID in $CurUpdList){               
-        If (Test-SccmUpdateExpired -UpdateID $UpdateID){            
-            $CurrentUpdateList.Updates = @($CurrentUpdateList.Updates | ? {$_ -ne $UpdateID})   
-            Write-Host "        KB Expired removed from SUG. (CI_ID:$UpdateId)." -ForegroundColor DarkGray
-            Write-Log          "KB Expired removed from SUG. (CI_ID:$UpdateId)." -iTabs 4                        
-            <#
-            $UpdateQuery = "select * from SMS_SoftwareUpdate where CI_ID = '$UpdateID'"
-            $updateInfo = @(Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Query $UpdateQuery)            
-            
-            #>
+        If (($PurgeExpired) -and (Test-SccmUpdateExpired -UpdateID $UpdateID -ExpUpdates $aExpUpdates)){            
+            Write-Log -iTabs 4 "KB Expired. Added to List of KBs to be removed from SUG. (CI_ID:$UpdateId)." -bConsole $true -sColor DarkGray
+            $updatesToRemove += $updateID            
         }
-        elseIf (Test-SCCMUpdateSuperseded -UpdateID $UpdateID -TakeAction $PurgeSuperseded){            
-            $CurrentUpdateList.Updates = @($CurrentUpdateList.Updates | ? {$_ -ne $UpdateID})  
-            Write-Host "        KB Superseded removed from SUG. (CI_ID:$UpdateId)." -ForegroundColor DarkYellow
-            Write-Log          "KB Superseded removed from SUG. (CI_ID:$UpdateId)." -iTabs 4             
-            <#
-            $UpdateQuery = "select * from SMS_SoftwareUpdate where CI_ID = '$UpdateID'"
-            $updateInfo = @(Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Query $UpdateQuery)            
-            
-            #>
+        elseIf (($PurgeSuperseded) -and (Test-SCCMUpdateSuperseded -UpdateID $UpdateID -SupUpdate $aSupersededUpdates)){            
+            Write-Log -iTabs 4 "KB Superseded. Added to List of KBs to be removed from SUG. (CI_ID:$UpdateId)." -bConsole $true -sColor DarkYellow
+            $updatesToRemove += $updateID
         }
-        elseIf (Test-SCCMUpdateAge -UpdateID $UpdateID -AgeThreshold $CurrentDateLessKeepThreshold -TakeAction $HandleAgedUpdates -PersistentGroup $PersistentUpdateGroup){            
-            $CurrentUpdateList.Updates = @($CurrentUpdateList.Updates | ? {$_ -ne $UpdateID})
-            Write-Host "        KB Aged removed from SUG. (CI_ID:$UpdateId)." -ForegroundColor DarkGreen
-            Write-Log          "KB Aged removed from SUG. (CI_ID:$UpdateId)." -iTabs 4                  
-            <#
-            $UpdateQuery = "select * from SMS_SoftwareUpdate where CI_ID = '$UpdateID'"
-            $updateInfo = @(Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Query $UpdateQuery)            
-            
-            #>
-        }
-    }
-    # Operation on update group is complete, write results to WMI.    
-    if ($Action -eq "Run"){  
-        if ($($CurrentUpdateList.Updates) -eq $null){
-            Write-Host "        No remaining Updates in $CurrentUpdateGroup. Deleting SUG" 
-            Write-Log          "No remaining Updates in $CurrentUpdateGroup. Deleting SUG" -iTabs 4 
-            Remove-CMSoftwareUpdateGroup -Name $CurrentUpdateGroup -Force
+        elseIf (($HandleAgedUpdates) -and (Test-SCCMUpdateAge -UpdateID $UpdateID -OldUpdates $aAgedUpdates)){
+            Write-Log -iTabs 4 "KB Aged. Added to list to be moved into Sustainer SUG. (CI_ID:$UpdateId)." -bConsole $true -sColor DarkGreen
+            $updatesToMove += $updateID
         }
         else{
-            $CurrentUpdateList.Put() | Out-Null        
+            #Write-Log -iTabs 4 "KB is valid. No action (CI_ID:$UpdateId)." -bConsole $true -sColor Green
         }
-    }       
+    }
+    If ($updatesToRemove.Count -gt 0){
+        Write-Log -iTabs 4 "Removing $($updatesToRemove.Count) updates from $CurrentUpdateGroup due to being Expired or Superseded" -bConsole $true
+        if ($Action -eq "Run"){  
+            try{
+                Remove-CMSoftwareUpdateFromGroup -SoftwareUpdateId $updatesToRemove -SoftwareUpdateGroupName $CurrentUpdateGroup -Force
+                Write-Log -iTabs 5 "Updates removed from to $CurrentUpdateGroup" -bConsole $true -sColor Green
+            }
+            catch{
+                Write-Log -iTabs 5 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red 
+            }
+        }
+    }
+    else{
+        Write-Log -iTabs 4 "No need to remove updates from $CurrentUpdateGroup" -bConsole $true
+    }    
+    If ($updatesToMove.Count -gt 0){
+        try{
+            Write-Log -iTabs 4 "Adding $($updatesToMove.Count) updates to $PersistentUpdateGroup due to being Aged" -bConsole $true
+            if ($Action -eq "Run"){  
+                Add-CMSoftwareUpdateToGroup -SoftwareUpdateId $updatesToRemove -SoftwareUpdateGroupName $CurrentUpdateGroup -Force
+                Write-Log -iTabs 5 "Updates added to $PersistentUpdateGroup" -bConsole $true -sColor Green
+            }
+        }
+        catch{
+            Write-Log -iTabs 5 "Error while running Add-CMSoftwareUpdateToGroup" -bConsole $true -sColor Red 
+        }
+        try{
+            Write-Log -iTabs 4 "Removing $($updatesToRemove.Count) from $CurrentUpdateGroup due to being Aged" -bConsole $true
+            if ($Action -eq "Run"){  
+                Remove-CMSoftwareUpdateFromGroup -SoftwareUpdateId $updatesToRemove -SoftwareUpdateGroupName $CurrentUpdateGroup -Force
+                Write-Log -iTabs 5 "Updates removed from $CurrentUpdateGroup" -bConsole $true -sColor Green
+            }  
+        }
+        catch{
+            Write-Log -iTabs 5 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red 
+        }
+    }
+    else{
+        Write-Log -iTabs 4 "No need to move updates to $PersistentUpdateGroup" -bConsole $true
+    }    
 }
 Function SingleUpdateGroupMaintenance{
 # This script is designed to handle maintenance of software update groups individually.
@@ -1407,7 +1413,7 @@ Function MainSub{
             }
             #endregion
     #endregion    
-    #region 1.5 Finalizing Pre-Checks      
+    #region 1.4 Finalizing Pre-Checks      
     Write-Log -iTabs 2 "1.4 - Finalizing Pre-Checks:" -bConsole $true -sColor cyan    
     Write-Log -itabs 3 "SUG Information - These SUGs will be evaluated/changed by this script." -bConsole $true
     #$sugs | ft
@@ -1455,8 +1461,7 @@ Function MainSub{
     Write-Log -iTabs 1 "Starting 2 - Execution."   -bConsole $true -sColor cyan    
     #region 2.1 Review all Monthly SUGs, removing Expired or Superseded KBs. KBs older than 1 year will be moved to Sustainer.        
         Write-Log -iTabs 2 "2.1 - Review all Monthly SUGs, removing Expired or Superseded KBs. KBs older than 1 year will be moved to Sustainer"-bConsole $true -sColor cyan        
-        $timeMonthSuperseded=$(Get-Date).AddDays(-$timeMonthSuperseded)
-        
+        $timeMonthSuperseded=$(Get-Date).AddDays(-$timeMonthSuperseded)        
         $sugCount=1
         foreach ($sug in $sugs){                    
             Write-Log -iTabs 3 "($sugCount/$($sugs.Count)) Evaluating SUG: $($sug.LocalizedDisplayName)." -bConsole $true
@@ -1470,18 +1475,18 @@ Function MainSub{
             }
             #if SUG is new ( less than 35 days) remove Expired and Superseded KBs Only
             elseif ($sug.DateCreated -gt $timeMonthSuperseded){                                
-                Write-Log -iTabs 4 "New SUG - Script will only remove Expired KBs."  -bConsole $true
-                Review-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $false -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $false
+                Write-Log -iTabs 4 "New SUG - Script will only remove Expired KBs."  -bConsole $true                
+                Review-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $false -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $false                
             }
             #if SUG is stable (DateCreate is lesser than Today-35 days and greater than Today-365 days) remove Expired and Superseded KBs Only. Delete Deployments to small DGs
-            elseif ($sug.DateCreated -gt $tSustainerAge){                                
+            elseif ($sug.DateCreated -lt $tSustainerAge){                                
                 Write-Log -iTabs 4 "Removing Expired and Superseeded KBs. Deployments to initial DGs will be deleted."  -bConsole $true
-                #UpdateGroupPairMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -HandleAgedUpdates $false -NumberofDaystoKeep $timeSustainerAge -PurgeExpired $true -PurgeSuperseded $true
+                Review-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $false -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $true -aSupersededUpdates $SupersededUpdates                
             }
             #if SUG is old (DateCreate is lesser than Today-365 days) remove Expired and Superseded KBs Only. Move valid KBs to Sustainer and Delete SUG
-            elseif ($sug.DateCreated -lt $tSustainerAge){                                
+            elseif ($sug.DateCreated -gt $tSustainerAge){                                
                 Write-Log -iTabs 4 "Removing Expired KBs and Superseeded KBs, Moving year-old Valid KBs into Sustainer SUG. Deployments to initial DGs will be deleted." -bConsole $true
-                #UpdateGroupPairMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -HandleAgedUpdates $true -NumberofDaystoKeep $timeSustainerAge -PurgeExpired $true -PurgeSuperseded $true
+                Review-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $true -aAgedUpdates $AgedUpdates -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $true -aSupersededUpdates $SupersededUpdates                
             }            
             $sugcount++
         }        
