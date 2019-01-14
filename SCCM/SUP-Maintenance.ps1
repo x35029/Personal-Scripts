@@ -1,4 +1,4 @@
-param( 
+﻿param( 
     [switch]$DebugLog=$false, 
     [switch]$NoRelaunch=$False, 
     [ValidateSet("Check","Run","Auto-Run")][string]$Action="Check",
@@ -314,7 +314,7 @@ Function Test-SCCMUpdateAge{
         return $false
     }
 }
-Function ReportingSoftwareUpdateGroupMaintenance{
+Function Maintain-ReportSug{
 # This script is designed to ensure consistent membership of the reporting software update group.
 # In this version it is assumed there is only one reporting software update group.  A reporting software
 # update group is assumed to never be deployed.  Accordingly, The script will first check to see if the 
@@ -328,56 +328,58 @@ Function ReportingSoftwareUpdateGroupMaintenance{
         [Parameter(Mandatory = $true)]
         $SiteCode,
         [Parameter(Mandatory = $true)]
-        $ReportingUpdateGroup,
+        $rptSUGUpdName,
         [Parameter(Mandatory = $false)]
-        $DeploySUGName
+        $rptSUGUpdList,
+        [Parameter(Mandatory = $false)]
+        $nonRptUpdList
         )
-    # Connect to discovered top level site.    
-    try{
-        # Check to see if the reporting software update group is deployed.  If so, exit.
-        If ((Get-CMSoftwareUpdateGroup -Name $ReportingUpdateGroup).IsDeployed -eq $true){
-            write-host "    Reporting Software Update Group is deployed.  This is not allowed.  Exiting." -ForegroundColor Red
-            Write-Log "Reporting Software Update Group is deployed.  This is not allowed.  Exiting." -iTabs 3
-            exit
-        }
-        else{
-            $initialRptUpdates = $(Get-CMSoftwareUpdateGroup -Name $ReportingUpdateGroup).NumberofUpdates            
-            Write-Host "    $ReportingUpdateGroup found with $initialRptUpdates updates."
-            Write-Log "$ReportingUpdateGroup found with $initialRptUpdates updates." -iTabs 3            
+    #finding updates that are in Rpt SUG but not in any Non-Rpt SUG
+    $updToRemove = @()
+    foreach ($update in $rptSUGUpdList){
+        if (!($nonRptUpdList -match $update)){
+            $updToRemove =+ $update       
         }
     }
-    catch{
-        write-host "    $ReportingUpdateGroup not found. Exiting." -ForegroundColor Red
-        Write-Log "$ReportingUpdateGroup not found. Exiting." -iTabs 3            
-        exit
+    #finding updates that aren't in Rpt SUG but are in any Non-Rpt SUG
+    $updToAdd = @()
+    foreach ($update in $nonRptUpdList){
+        if (!($rptSUGUpdList -match $update)){
+            $updToAdd =+ $update       
+        }
     }
-
-    # Get all of the software update groups currently configured.  This list will be used for pupulating the reporting
-    # software update group.
-    $AllSoftwareUpdateGroups = Get-CMSoftwareUpdateGroup | Where {$_.LocalizedDisplayName -like "$DeploySUGName*"}        
-    $currentSUG = 1
-    # Work through each software update group and add all updates from each to the reporting software update group.
-    ForEach ($UpdateGroup in $AllSoftwareUpdateGroups){            
-        # As long as the update group being handled is not the reporting software update group, proceed to process.
-        If ($UpdateGroup.LocalizedDisplayName -ne $ReportingUpdateGroup){
-            # Get all of the updates from the update group being evaluated.
-            Write-Host "    ($currentSUG of $($AllSoftwareUpdateGroups.Count-1)) Evaluating SUG: $($UpdateGroup.LocalizedDisplayName)."
-            Write-Log      "($currentSUG of $($AllSoftwareUpdateGroups.Count-1)) Evaluating SUG: $($UpdateGroup.LocalizedDisplayName)." -iTabs 3
-            $Updates = Get-CMSoftwareUpdate -updategroupname $UpdateGroup.LocalizedDisplayName -Fast
-            Write-Host "        Adding $($Updates.Count) updates" -ForegroundColor DarkGray
-            Write-Log          "Adding $($Updates.Count) updates" -iTabs 4            
-            # Loop through each update and add to the reporting software update group
-            ForEach ($Update in $Updates){
-                if ($Action -eq "Run"){
-                    Add-CMSoftwareUpdateToGroup -SoftwareUpdateGroupName $ReportingUpdateGroup -SoftwareUpdateID $Update.CI_ID
-                }
-            }
-            $currentSUG++
-        }        
+    #removing extra updates from SUG Rpt
+    if ($updToRemove.Count -gt 0){
+        try{
+            Write-Log -iTabs 4 "Removing $($updToRemove.Count) from $rptSUGUpdName" -bConsole $true
+            if ($Action -eq "Run"){  
+                Remove-CMSoftwareUpdateFromGroup -SoftwareUpdateId $updToRemove -SoftwareUpdateGroupName $rptSUGUpdName -Force
+                Write-Log -iTabs 5 "Updates removed from $rptSUGUpdName" -bConsole $true -sColor Green
+            }  
+        }
+        catch{
+            Write-Log -iTabs 5 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red                 
+        }
     }
-    $finalRptUpdates = $(Get-CMSoftwareUpdateGroup -Name $ReportingUpdateGroup).NumberofUpdates            
-    Write-Host "    $ReportingUpdateGroup now has $finalRptUpdates updates."
-    Write-Log      "$ReportingUpdateGroup now has $finalRptUpdates updates." -iTabs 4
+    else{
+        Write-Log -iTabs 4 "No updates to remove from $rptSUGUpdName" -bConsole $true
+    }
+    #adding updates
+    if ($updToAdd.Count -gt 0){
+        try{            
+            Write-Log -iTabs 4 "Adding $($updToAdd.Count) to $rptSUGUpdName" -bConsole $true
+            if ($Action -eq "Run"){  
+                Add-CMSoftwareUpdateToGroup -SoftwareUpdateId $updToAdd -SoftwareUpdateGroupName $rptSUGUpdName -Force                
+            }            
+            Write-Log -iTabs 5 "Updates added to $rptSUGUpdName" -bConsole $true -sColor Green
+        }
+        catch{
+            Write-Log -iTabs 5 "Error while running Add-CMSoftwareUpdateToGroup" -bConsole $true -sColor Red 
+        }
+    }
+    else{
+        Write-Log -iTabs 4 "No updates to add to $rptSUGUpdName" -bConsole $true
+    }
 }
 function Review-SUGPair{
 
@@ -389,10 +391,8 @@ function Review-SUGPair{
         [Parameter(Mandatory = $true)]
         $CurrentUpdateGroup,
         [Parameter(Mandatory = $true)]
-        $CurUpdList,
-        [Parameter(Mandatory = $true)]
-        $PersistentUpdateGroup,
-        [Parameter(Mandatory = $true)]
+        $CurUpdList,        
+        $PersistentUpdateGroup,        
         $PerUpdList,
         [Parameter(Mandatory = $false)]  
         $HandleAgedUpdates=$false,               
@@ -402,13 +402,18 @@ function Review-SUGPair{
         $aExpUpdates,
         [Parameter(Mandatory = $false)]
         $PurgeSuperseded=$false,
-        $aSupersededUpdates
+        $aSupersededUpdates,
+        [Parameter(Mandatory = $false)]
+        $pkgSusName,
+        [Parameter(Mandatory = $false)]
+        $pkgSusList=$false
         )
-
+    # If Current and persistent SUGs are equal, exit
     If ($CurrentUpdateGroup -eq $PersistentUpdateGroup){
         write-host ("The Current and Persistent update groups are the same group.  This is not allowed.  Exiting")
         exit
     }         
+    #starting arrays
     $updatesToRemove =@()
     $updatesToMove   =@()
 
@@ -430,204 +435,118 @@ function Review-SUGPair{
         }
     }
     If ($updatesToRemove.Count -gt 0){
-        Write-Log -iTabs 4 "Removing $($updatesToRemove.Count) updates from $CurrentUpdateGroup due to being Expired or Superseded" -bConsole $true
+        Write-Log -iTabs 3 "Removing $($updatesToRemove.Count) updates from $CurrentUpdateGroup due to being Expired or Superseded" -bConsole $true
         if ($Action -eq "Run"){  
             try{
                 Remove-CMSoftwareUpdateFromGroup -SoftwareUpdateId $updatesToRemove -SoftwareUpdateGroupName $CurrentUpdateGroup -Force
-                Write-Log -iTabs 5 "Updates removed from to $CurrentUpdateGroup" -bConsole $true -sColor Green
+                Write-Log -iTabs 4 "Updates removed from to $CurrentUpdateGroup" -bConsole $true -sColor Green
             }
             catch{
-                Write-Log -iTabs 5 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red 
+                Write-Log -iTabs 4 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red 
             }
         }
     }
     else{
         Write-Log -iTabs 4 "No need to remove updates from $CurrentUpdateGroup" -bConsole $true
     }    
-    If ($updatesToMove.Count -gt 0){
-        try{
-            Write-Log -iTabs 4 "Adding $($updatesToMove.Count) updates to $PersistentUpdateGroup due to being Aged" -bConsole $true
-            if ($Action -eq "Run"){  
-                Add-CMSoftwareUpdateToGroup -SoftwareUpdateId $updatesToRemove -SoftwareUpdateGroupName $CurrentUpdateGroup -Force
-                Write-Log -iTabs 5 "Updates added to $PersistentUpdateGroup" -bConsole $true -sColor Green
+    If (($updatesToMove.Count -gt 0) -and ($HandleAgedUpdates)){
+        Write-Log -iTabs 3 "Adding $($updatesToMove.Count) updates to $PersistentUpdateGroup due to being Aged" -bConsole $true            
+        # checking if there is a need to download updates
+        Write-Log -iTabs 4 "Checking if updates to be moved need to be downloaded." -bConsole $true
+        $updatesToDownload =@()
+        foreach ($update in $updatesToMove){
+            $downloadUpd=$false
+            if (!($pkgSusList -match $update)){
+                $updatesToDownload += $update
+                $downloadUpd=$true
             }
+        }
+        # downloading updates if needed
+        if ($downloadUpd){
+            try{
+                Write-Log -iTabs 5 "Downloading updates." -bConsole $true
+                if ($Action -eq "Run"){
+                    Save-CMSoftwareUpdate -SoftwareUpdateId $updatesToDownload -DeploymentPackageName $pkgSusName -SoftwareUpdateLanguage "English"
+                }
+                Write-Log -iTabs 5 "Updates Downloaded into $pkgSusName." -bConsole $true -sColor Green
+            }
+            catch{
+                Write-Log -iTabs 5 "Error Downloading into $pkgSusName." -bConsole $true -sColor red
+                Write-Log -iTabs 5 "Aborting script." -bConsole $true -sColor red
+                $global:iExitCode = 9015
+                return $global:iExitCode
+            }
+        }
+        # Adding updates to Sustainer
+        $upInSustainer=$false
+        try{            
+            if ($Action -eq "Run"){  
+                Add-CMSoftwareUpdateToGroup -SoftwareUpdateId $updatesToRemove -SoftwareUpdateGroupName $CurrentUpdateGroup -Force                
+            }
+            $upInSustainer=$true
+            Write-Log -iTabs 5 "Updates added to $PersistentUpdateGroup" -bConsole $true -sColor Green
         }
         catch{
             Write-Log -iTabs 5 "Error while running Add-CMSoftwareUpdateToGroup" -bConsole $true -sColor Red 
         }
-        try{
-            Write-Log -iTabs 4 "Removing $($updatesToRemove.Count) from $CurrentUpdateGroup due to being Aged" -bConsole $true
-            if ($Action -eq "Run"){  
-                Remove-CMSoftwareUpdateFromGroup -SoftwareUpdateId $updatesToRemove -SoftwareUpdateGroupName $CurrentUpdateGroup -Force
-                Write-Log -iTabs 5 "Updates removed from $CurrentUpdateGroup" -bConsole $true -sColor Green
-            }  
-        }
-        catch{
-            Write-Log -iTabs 5 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red 
+        # removing updates from Monthly
+        if ($upInSustainer){
+            try{
+                Write-Log -iTabs 3 "Removing $($updatesToRemove.Count) from $CurrentUpdateGroup due to being Aged" -bConsole $true
+                if ($Action -eq "Run"){  
+                    Remove-CMSoftwareUpdateFromGroup -SoftwareUpdateId $updatesToRemove -SoftwareUpdateGroupName $CurrentUpdateGroup -Force
+                    Write-Log -iTabs 4 "Updates removed from $CurrentUpdateGroup" -bConsole $true -sColor Green
+                }  
+            }
+            catch{
+                Write-Log -iTabs 4 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red                 
+            }
+        }       
+        else{
+            Write-Log -iTabs 4 "Script will not remove updates from $CurrentUpdateGroup since it failed to add to Sustainer" -bConsole $true            
         }
     }
-    else{
+    elseif ($HandleAgedUpdates){
         Write-Log -iTabs 4 "No need to move updates to $PersistentUpdateGroup" -bConsole $true
     }    
 }
-Function SingleUpdateGroupMaintenance{
-# This script is designed to handle maintenance of software update groups individually.
-# Maintenance options include scanning for and removing superseded, expired or aged updates.
-# NOTE 1:  If removing aged updates this script simply removes them without adding them to another update 
-# group.  A separate script is available that will handle moving updates to another update group 
-# if needed.  When the script is used to purge aged updates the assumption is that this operation will be
-# done on the persistent update group.  Accordingly and unless otherwise specified, the default threshold for
-# update age is 1 year.
-# NOTE 2:  This script does not handle purging updates from the deployment packages.  A separate script is 
-# available for that.
+function Maintain-DeploymentPackages {
     Param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         $SiteProviderServerName,
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         $SiteCode,
-        [Parameter(Mandatory = $true)]
-        $ManagedUpdateGroup,
-        [Parameter(Mandatory = $false)][boolean]
-        $HandleAgedUpdates=$false,
         [Parameter(Mandatory = $false)]
-        $NumberofDaystoKeep=365,
-        [Parameter(Mandatory = $false)][boolean]
-        $PurgeSuperseded=$true,
-        [Parameter(Mandatory = $false)][boolean]
-        $PurgeExpired=$true,
-        [boolean]$WhatIf=$true
-        )     
-
-    
-    # Credit to Tevor Sullivan for this function.  Modified from his original for use here.
-    # http://trevorsullivan.net/2011/11/29/configmgr-cleanup-software-updates-objects/
-    
-    # Get current date and calculate the aged update threshold based on either 360
-    # days or the value specified.
-    $CurrentDate = Get-Date  
-    $CurrentDateLessKeepThreshold = $CurrentDate.AddDays(-$NumberofDaystoKeep)
-
-    # Retrieve the update group that was passed in as the managed update group.
-    # This is the update group where maintenance will be performed.
-    $MaintenanceUpdateList = Get-WmiObject -Namespace root\sms\site_$($SiteCode) -Class SMS_AuthorizationList -ComputerName $SiteProviderServerName -filter "localizeddisplayname = '$ManagedUpdateGroup'"
-
-    #Process the Current Update Group 
-    $MaintenanceUpdateList = [wmi]"$($MaintenanceUpdateList.__PATH)" #There is a double _ in front of PATH
-    #write-host "    $($MaintenanceUpdateList.localizeddisplayname) has $($MaintenanceUpdateList.Updates.Count) updates in it"
-
-    # Loop through each update in the update group.  Depending on parameters test update to see if it is expired, superseded
-    # or past the age threshold.  Remove from the update group according to configuration and findings.
-    $upCount=0
-    ForEach ($UpdateID in $MaintenanceUpdateList.Updates){
-        <#
-        If ((Test-SccmUpdateExpired -UpdateID $UpdateID -TakeAction $PurgeExpired) -or (Test-SCCMUpdateSuperseded -UpdateID $UpdateID -TakeAction $PurgeSuperseded) -or (Test-SCCMUpdateAge -UpdateID $UpdateID -AgeThreshold $CurrentDateLessKeepThreshold -TakeAction $HandleAgedUpdates)){
-            $MaintenanceUpdateList.Updates = @($MaintenanceUpdateList.Updates | ? {$_ -ne $UpdateID})
-            Write-Log "Removing $UpdateID" -iTabs 4
-            $upCount++
-        }
-        #>
-        if (Test-SccmUpdateExpired -UpdateID $UpdateID -TakeAction $PurgeExpired){
-            $MaintenanceUpdateList.Updates = @($MaintenanceUpdateList.Updates | ? {$_ -ne $UpdateID})
-            Write-Host "        CI_ID:$UpdateId is Expired." -ForegroundColor DarkGray
-            Write-Log          "CI_ID:$UpdateId is Expired." -iTabs 4            
-            $upCount++
-        }
-        elseif (Test-SCCMUpdateSuperseded -UpdateID $UpdateID -TakeAction $PurgeSuperseded){
-            $MaintenanceUpdateList.Updates = @($MaintenanceUpdateList.Updates | ? {$_ -ne $UpdateID})
-            Write-Host "        CI_ID:$UpdateId is Superseded." -ForegroundColor DarkYellow
-            Write-Log          "CI_ID:$UpdateId is Superseded." -iTabs 4            
-            $upCount++
-        }        
-        else{
-            Write-Host "        CI_ID:$UpdateId is Valid." -ForegroundColor DarkGreen
-            Write-Log          "CI_ID:$UpdateId is Valid." -iTabs 4  
-        } 
-    }
-    # Finished evaluating and changing the update group, write the modifications to WMI.
-    if ($Action -eq "Run"){
-        if ($MaintenanceUpdateList.Updates -eq $null){
-            Write-Host "        No remaining Updates in $ManagedUpdateGroup. Verify environment with SME as this result is not expected." 
-            Write-Log          "No remaining Updates in $ManagedUpdateGroup. Verify environment with SME as this result is not expected." -iTabs 4 
-        }
-        else{
-            $MaintenanceUpdateList.Put() | Out-Null
-        }
-    }    
-}
-function EvaluateNumberOfUpdatesinGRoups{
-# This script will examine the count of updates in each deployed update group and provide a warning
-# when the number of updates in a given group exceeds 900.
-    Param(
-        [Parameter(Mandatory = $true)]
-        $SiteServerName,
-        [Parameter(Mandatory = $true)]
-        $SiteCode,
-        [Parameter(Mandatory = $true)]
-        $SugName
-        )
-    # Get all of the software update groups current configured.
-    $SoftwareUpdateGroups = Get-cmsoftwareupdategroup | WHERE {$_.LocalizedDisplayName -like "$SugName*"}
-    # Loop through each software update group and check the total number of updates in each.    
-    ForEach ($Group in $SoftwareUpdateGroups){        
-        # Only test update groups that are deployed.  Reporting software update groups may be used
-        # in some environments and as long as these groups aren't deployed they can contain greater
-        # than 1000 updates.  Accordingly, warning for those groups doesn't apply.
-        if (($Group.Updates.Count -gt 900) -and ($Group.IsDeployed -eq 'True')){
-            $textColor="Red"
-        }
-        else{
-            $textColor="Green"
-        }   
-        write-host "    Updates found: $($Group.Updates.Count) SUG: $($Group.LocalizedDisplayName)" -ForegroundColor $textColor
-        write-log      "Updates found: $($Group.Updates.Count) SUG: $($Group.LocalizedDisplayName)" -iTabs 4
-        if ($textcolor -eq "Red"){
-            write-host "    SUG that are deployed should contain less than 900 updates. Consider splitting this SUG into more." 
-            write-log      "SUG that are deployed should contain less than 900 updates. Consider splitting this SUG into more." -iTabs 4
-        }
-    }     
-}
-function MaintainSoftwareUpdateGroupDeploymentPackages {
-    # This script is designed to make comparisons between all softwareupdate deployment packages and all software update groups.
-    #
-    # Each software update deployment package will be scanned against all configured software update
-    # groups and where an update remains in a given deployment package that is not a part of any
-    # software update group then that update will be removed from the deployment package.  After
-    # a given update deployment package completes processing and if there are deletions detected for
-    # the software update group then the package will be updated to all associated distribution points.
-    # Note:  It is very easy to reconfigure the script to NOT update the distribution points - see comments 
-    # in script.
-    #
-    # In addition, each software update group will be scanned against all configured software update
-    # deployment packages.  Where an update is found to exist in an update group but not in a deployment
-    # package the update will be called out for potential administrative action.
-    # Note:  This script will not add software updates to a deployment package if they are missing.  That
-    # action should be handled by an administrator to ensure proper deployment packages are selected for a
-    # given update or group.  In addition, this script assumes that only software update groups are being
-    # leveraged for deployment of updates to the environment.  If an update has been deployed individually
-    # without being included in a software update group then this script will consider such an update as a 
-    # candidate for deletion fromt the update deployment package.
-    #
-    # Note that in ConfigMgr 2012 when an update is removed from a deployment package the source content for
-    # the update is automatically removed as well so no specific handling to remove source content is used in
-    # the script.
-
-    Param(
+        $nonRptUpdList,
         [Parameter(Mandatory = $false)]
-        $SiteProviderServerName="SCCM02",
+        $pkgMonthlyList,
         [Parameter(Mandatory = $false)]
-        $SiteCode="VAR",
-        [Parameter(Mandatory = $false)]
-        $PkgName="VARLAB-TestSUP-",
-        [Parameter(Mandatory = $false)]
-        $SugName="VARLAB-TestSUP-",
-        [Parameter(Mandatory = $false)]
-        $takeAction=$false
+        $pkgSustainerList
         )   
+    # Checkig if all Upd from SUGs are present in at least 1 pkg
+    $updatesToDownload =@()
+    foreach ($update in $nonRptUpdList){
+        if (!(($pkgMonthlyList -match $update) -or ($pkgMonthlyList -match $update))){
+            $updatesToDownload += $update
+        }
+    }
+    # Checking if all updates in Sustainer package is present in SUGs
+    $updatesToDelete = @()
+    foreach ($update in $pkgSustainerList){
+        if (!($nonRptUpdList -match $update)){
+            $updatesToDelete += $update        
+        }
+    }
 
-if ($Action="Run"){
-    $takeAction=$true
-}
- # Retrieve all software update deployment packages and softare update groups matching their respective templates
+    $updatesToDelete = @()
+    foreach ($update in $pkgMonthlyList){
+        if (!($nonRptUpdList -match $update)){
+            $updatesToDelete += $update        
+        }
+    }
+    
+    <#
+# Retrieve all software update deployment packages and softare update groups matching their respective templates
     $SoftwareUpdateDeploymentPackages = Get-CMSoftwareUpdateDeploymentPackage | WHERE {$_.Name -like "*$PkgName*"}
     $SoftwareUpdateGroups = Get-cmsoftwareupdategroup | WHERE {$_.LocalizedDisplayName -like "*$SugName*"}
 
@@ -644,8 +563,7 @@ $TempPkgCIArray = @()
 $TempUpdCIArray = @()
 
 # Pull and store a list of all configuration items for each deployment package in a hash table.
-ForEach ($DeploymentPackage in $SoftwareUpdateDeploymentPackages)
-{
+ForEach ($DeploymentPackage in $SoftwareUpdateDeploymentPackages){
     Write-Host "   Checking Package $($DeploymentPackage.Name)"
     Write-Log     "Checking Package $($DeploymentPackage.Name)" -iTabs 4
     $upCount=1
@@ -679,8 +597,7 @@ ForEach ($DeploymentPackage in $SoftwareUpdateDeploymentPackages)
 }
 
 # Pull and store a list of all configuration items for each software update group in a hash table.
-ForEach ($UpdateGroup in $SoftwareUpdateGroups)
-{
+ForEach ($UpdateGroup in $SoftwareUpdateGroups){
     Write-Host "   Checking SUG $($UpdateGroup.LocalizedDisplayName)"
     Write-Log     "Checking SUG $($UpdateGroup.LocalizedDisplayName)" -iTabs 4    
     $upCount=1
@@ -703,8 +620,7 @@ ForEach ($UpdateGroup in $SoftwareUpdateGroups)
 # Start by examining each package in the hashtable.
 Write-Host "    Checking Deployment Packages to see if there are any updates that are not currently in an update group."
 Write-Log      "Checking Deployment Packages to see if there are any updates that are not currently in an update group." -iTabs 4
-foreach($Package in $HTUpdateDeploymentPackagesandUpdates.Keys)
-{
+foreach($Package in $HTUpdateDeploymentPackagesandUpdates.Keys){
     Write-Host "        Checking Deployment Package $Package"
     # Loop through each CI that has been stored in the array associated with the deployment package
     # entry and compare to see if there is a matching item in any of the software update groups.
@@ -759,8 +675,7 @@ foreach($Package in $HTUpdateDeploymentPackagesandUpdates.Keys)
 # Check Software Update groups to see if there are any updates that are not currently in a deployment package..
 # Start by examining each updategroup in the hashtable.
 Write-Host "    Check Software Update groups to see if there are any updates that are not currently in a deployment package.." -ForegroundColor Yellow
-foreach($UpdateGroup in $HTUpdateGroupsandUpdates.Keys)
-{
+foreach($UpdateGroup in $HTUpdateGroupsandUpdates.Keys){
     Write-Host "        Checking SUG $UpdateGroup"
     # Loop through each CI that has been stored in the array associated with the software update group
     # and compare to see if there is a matching item in any of the deployment packages.
@@ -865,8 +780,7 @@ Write-Log      "Listing SUGs Missing Content. Download Article IDs into the list
 Write-Host "        TargetPackage | Article | Title"
 Write-Log          "TargetPackage | Article | Title" -iTabs 5
 $AgeThresholdfunc = (GET-DAte).AddDays(-$timeSustainerAge)
-foreach ($UpdateGroup in $HTUpdateGroupsandUpdatestoRemove.Keys)
-{
+foreach ($UpdateGroup in $HTUpdateGroupsandUpdatestoRemove.Keys){
     If ($HTUpdateGroupsandUpdatestoRemove["$UpdateGroup"] -ne $Null)
     {
         
@@ -886,7 +800,125 @@ foreach ($UpdateGroup in $HTUpdateGroupsandUpdatestoRemove.Keys)
         }
     }
 }
+#>
 }
+Function SingleUpdateGroupMaintenance{
+# This script is designed to handle maintenance of software update groups individually.
+# Maintenance options include scanning for and removing superseded, expired or aged updates.
+# NOTE 1:  If removing aged updates this script simply removes them without adding them to another update 
+# group.  A separate script is available that will handle moving updates to another update group 
+# if needed.  When the script is used to purge aged updates the assumption is that this operation will be
+# done on the persistent update group.  Accordingly and unless otherwise specified, the default threshold for
+# update age is 1 year.
+# NOTE 2:  This script does not handle purging updates from the deployment packages.  A separate script is 
+# available for that.
+    Param(
+        [Parameter(Mandatory = $true)]
+        $SiteProviderServerName,
+        [Parameter(Mandatory = $true)]
+        $SiteCode,
+        [Parameter(Mandatory = $true)]
+        $ManagedUpdateGroup,
+        [Parameter(Mandatory = $false)][boolean]
+        $HandleAgedUpdates=$false,
+        [Parameter(Mandatory = $false)]
+        $NumberofDaystoKeep=365,
+        [Parameter(Mandatory = $false)][boolean]
+        $PurgeSuperseded=$true,
+        [Parameter(Mandatory = $false)][boolean]
+        $PurgeExpired=$true,
+        [boolean]$WhatIf=$true
+        )     
+
+    
+    # Credit to Tevor Sullivan for this function.  Modified from his original for use here.
+    # http://trevorsullivan.net/2011/11/29/configmgr-cleanup-software-updates-objects/
+    
+    # Get current date and calculate the aged update threshold based on either 360
+    # days or the value specified.
+    $CurrentDate = Get-Date  
+    $CurrentDateLessKeepThreshold = $CurrentDate.AddDays(-$NumberofDaystoKeep)
+
+    # Retrieve the update group that was passed in as the managed update group.
+    # This is the update group where maintenance will be performed.
+    $MaintenanceUpdateList = Get-WmiObject -Namespace root\sms\site_$($SiteCode) -Class SMS_AuthorizationList -ComputerName $SiteProviderServerName -filter "localizeddisplayname = '$ManagedUpdateGroup'"
+
+    #Process the Current Update Group 
+    $MaintenanceUpdateList = [wmi]"$($MaintenanceUpdateList.__PATH)" #There is a double _ in front of PATH
+    #write-host "    $($MaintenanceUpdateList.localizeddisplayname) has $($MaintenanceUpdateList.Updates.Count) updates in it"
+
+    # Loop through each update in the update group.  Depending on parameters test update to see if it is expired, superseded
+    # or past the age threshold.  Remove from the update group according to configuration and findings.
+    $upCount=0
+    ForEach ($UpdateID in $MaintenanceUpdateList.Updates){
+        <#
+        If ((Test-SccmUpdateExpired -UpdateID $UpdateID -TakeAction $PurgeExpired) -or (Test-SCCMUpdateSuperseded -UpdateID $UpdateID -TakeAction $PurgeSuperseded) -or (Test-SCCMUpdateAge -UpdateID $UpdateID -AgeThreshold $CurrentDateLessKeepThreshold -TakeAction $HandleAgedUpdates)){
+            $MaintenanceUpdateList.Updates = @($MaintenanceUpdateList.Updates | ? {$_ -ne $UpdateID})
+            Write-Log "Removing $UpdateID" -iTabs 4
+            $upCount++
+        }
+        #>
+        if (Test-SccmUpdateExpired -UpdateID $UpdateID -TakeAction $PurgeExpired){
+            $MaintenanceUpdateList.Updates = @($MaintenanceUpdateList.Updates | ? {$_ -ne $UpdateID})
+            Write-Host "        CI_ID:$UpdateId is Expired." -ForegroundColor DarkGray
+            Write-Log          "CI_ID:$UpdateId is Expired." -iTabs 4            
+            $upCount++
+        }
+        elseif (Test-SCCMUpdateSuperseded -UpdateID $UpdateID -TakeAction $PurgeSuperseded){
+            $MaintenanceUpdateList.Updates = @($MaintenanceUpdateList.Updates | ? {$_ -ne $UpdateID})
+            Write-Host "        CI_ID:$UpdateId is Superseded." -ForegroundColor DarkYellow
+            Write-Log          "CI_ID:$UpdateId is Superseded." -iTabs 4            
+            $upCount++
+        }        
+        else{
+            Write-Host "        CI_ID:$UpdateId is Valid." -ForegroundColor DarkGreen
+            Write-Log          "CI_ID:$UpdateId is Valid." -iTabs 4  
+        } 
+    }
+    # Finished evaluating and changing the update group, write the modifications to WMI.
+    if ($Action -eq "Run"){
+        if ($MaintenanceUpdateList.Updates -eq $null){
+            Write-Host "        No remaining Updates in $ManagedUpdateGroup. Verify environment with SME as this result is not expected." 
+            Write-Log          "No remaining Updates in $ManagedUpdateGroup. Verify environment with SME as this result is not expected." -iTabs 4 
+        }
+        else{
+            $MaintenanceUpdateList.Put() | Out-Null
+        }
+    }    
+} 
+function EvaluateNumberOfUpdatesinGRoups{
+# This script will examine the count of updates in each deployed update group and provide a warning
+# when the number of updates in a given group exceeds 900.
+    Param(
+        [Parameter(Mandatory = $true)]
+        $SiteServerName,
+        [Parameter(Mandatory = $true)]
+        $SiteCode,
+        [Parameter(Mandatory = $true)]
+        $SugName
+        )
+    # Get all of the software update groups current configured.
+    $SoftwareUpdateGroups = Get-cmsoftwareupdategroup | WHERE {$_.LocalizedDisplayName -like "$SugName*"}
+    # Loop through each software update group and check the total number of updates in each.    
+    ForEach ($Group in $SoftwareUpdateGroups){        
+        # Only test update groups that are deployed.  Reporting software update groups may be used
+        # in some environments and as long as these groups aren't deployed they can contain greater
+        # than 1000 updates.  Accordingly, warning for those groups doesn't apply.
+        if (($Group.Updates.Count -gt 900) -and ($Group.IsDeployed -eq 'True')){
+            $textColor="Red"
+        }
+        else{
+            $textColor="Green"
+        }   
+        write-host "    Updates found: $($Group.Updates.Count) SUG: $($Group.LocalizedDisplayName)" -ForegroundColor $textColor
+        write-log      "Updates found: $($Group.Updates.Count) SUG: $($Group.LocalizedDisplayName)" -iTabs 4
+        if ($textcolor -eq "Red"){
+            write-host "    SUG that are deployed should contain less than 900 updates. Consider splitting this SUG into more." 
+            write-log      "SUG that are deployed should contain less than 900 updates. Consider splitting this SUG into more." -iTabs 4
+        }
+    }     
+}
+
 #endregion
 # --------------------------------------------------------------------------------------------
 
@@ -1272,7 +1304,26 @@ Function MainSub{
                     }
                     #Monthly Deployment Package was found
                     if ($pkgMonth.Count -gt 0){                        
-                        Write-Log -iTabs 4 "$($PKGTemplateName)Monthly was found." -bConsole $true -sColor green
+                        Write-Log -iTabs 4 "$($pkgMonth.Name) was found." -bConsole $true -sColor green                    
+                        #Loading CI_IDs from Monthly Package                                        
+                        Write-Log -iTabs 4 "Loading CI_ID List from $($pkgMonth.Name)" -bConsole $true
+                        $upCount =0
+                        $PkgID = [System.Convert]::ToString($pkgMonth.PackageID)
+                        # The query pulls a list of all software updates in the current package.  This query doesn't pull back a clean value so will store it and then manipulate the string to just get the CI information we need a bit later.
+                        $Query="SELECT DISTINCT su.* FROM SMS_SoftwareUpdate AS su JOIN SMS_CIToContent AS cc ON  SU.CI_ID = CC.CI_ID JOIN SMS_PackageToContent AS  pc ON pc.ContentID=cc.ContentID  WHERE  pc.PackageID='$PkgID' AND su.IsContentProvisioned=1 ORDER BY su.DateRevised Desc"
+                        $QueryResults=@(Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Query $Query)                    
+                        $pkgMonthlyList = @()
+                        # Work one by one through every CI that is part of the package adding each to the array to be stored in the hash table.
+                        ForEach ($CI in $QueryResults){                
+                            # Need to convert the CI information to a string
+                            $IndividualCIinDeploymentPackage = [System.Convert]::ToString($CI)
+                            # Since the converted string has more text than just the CI value need to manipulate it to strip off the unneeded parts.
+                            $Index = $IndividualCIinDeploymentPackage.IndexOf("=")
+                            $IndividualCIinDeploymentPackage = $IndividualCIinDeploymentPackage.remove(0, ($Index + 1))
+                            $age = (((get-date -uformat %Y)-[int]$ci.DatePosted.Substring(0,4))*365)+(((get-date -uformat %m)-[int]$ci.DatePosted.Substring(4,2))*30)
+                            $pkgMonthlyList += $IndividualCIinDeploymentPackage                        
+                        }
+                        Write-Log -iTabs 5 "Total Updates: $($pkgMonthlyList.Count)" -bConsole $true -sColor Green                        
                     }
                     #Monthly Deployment Package was not found
                     else{                        
@@ -1323,9 +1374,27 @@ Function MainSub{
                     }
                     #Sustainer Deployment Package was found
                     if ($pkgSustainer.Count -gt 0){                        
-                        Write-Log -iTabs 4 "$($PKGTemplateName)Sustainer was found." -bConsole $true -sColor green
+                        Write-Log -iTabs 4 "$($pkgSustainer.Name) was found." -bConsole $true -sColor green                        
+                        #Loading CI_IDs from Monthly Package                                        
+                        Write-Log -iTabs 4 "Loading CI_ID List from $($pkgSustainer.Name)" -bConsole $true
+                        $upCount =0
+                        $PkgID = [System.Convert]::ToString($pkgSustainer.PackageID)
+                        # The query pulls a list of all software updates in the current package.  This query doesn't pull back a clean value so will store it and then manipulate the string to just get the CI information we need a bit later.
+                        $Query="SELECT DISTINCT su.* FROM SMS_SoftwareUpdate AS su JOIN SMS_CIToContent AS cc ON  SU.CI_ID = CC.CI_ID JOIN SMS_PackageToContent AS  pc ON pc.ContentID=cc.ContentID  WHERE  pc.PackageID='$PkgID' AND su.IsContentProvisioned=1 ORDER BY su.DateRevised Desc"
+                        $QueryResults=@(Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Query $Query)                    
+                        $pkgSustainerList = @()
+                        # Work one by one through every CI that is part of the package adding each to the array to be stored in the hash table.
+                        ForEach ($CI in $QueryResults){                
+                            # Need to convert the CI information to a string
+                            $IndividualCIinDeploymentPackage = [System.Convert]::ToString($CI)
+                            # Since the converted string has more text than just the CI value need to manipulate it to strip off the unneeded parts.
+                            $Index = $IndividualCIinDeploymentPackage.IndexOf("=")
+                            $IndividualCIinDeploymentPackage = $IndividualCIinDeploymentPackage.remove(0, ($Index + 1))
+                            $pkgSustainerList += $IndividualCIinDeploymentPackage                        
+                        }
+                        Write-Log -iTabs 5 "Total Updates: $($pkgSustainerList.Count)" -bConsole $true -sColor Green          
                     }
-                    #Monthly Deployment Package was not found
+                    #Sustainer Deployment Package was not found
                     else{                        
                         Write-Log -iTabs 4 "$($PKGTemplateName)Sustainer was not found. This Package is Required to proceed with script execution." -bConsole $true -sColor red
                         do{
@@ -1416,10 +1485,10 @@ Function MainSub{
     #region 1.4 Finalizing Pre-Checks      
     Write-Log -iTabs 2 "1.4 - Finalizing Pre-Checks:" -bConsole $true -sColor cyan    
     Write-Log -itabs 3 "SUG Information - These SUGs will be evaluated/changed by this script." -bConsole $true
-    #$sugs | ft
+    #$sugs | ft    
     foreach ($sug in $sugs){
         $sugName = $sug.LocalizedDisplayName
-        Write-Log -itabs 4 $sugName -bConsole $true
+        Write-Log -itabs 4 $sug.LocalizedDisplayName -bConsole $true
     }    
     Write-Log -itabs 3 "Package Information - These PKGs will be evaluated/changed by this script." -bConsole $true
     foreach ($pkg in $pkgs){
@@ -1432,8 +1501,8 @@ Function MainSub{
     Write-Log -itabs 3 "Number of Updates in Report SUG: $initRptNumUpdates" -bConsole $true -sColor yellow
     $initNumSugs = $sugs.Count
     Write-Log -itabs 3 "Number of SUGs: $initNumSugs" -bConsole $true -sColor yellow
-    $initPkgSize = ($pkgs | Measure-Object -Property PackageSize -Sum).Sum/1024
-    Write-Log -itabs 3 "Space used by Packages: $initPkgSize MB" -bConsole $true -sColor yellow
+    $initPkgSize = ($pkgs | Measure-Object -Property PackageSize -Sum).Sum/1024/1024
+    Write-Log -itabs 3 "Space used by Packages: $([math]::Round($initPkgSize,2)) GB" -bConsole $true -sColor yellow
     Write-Log -itabs 2 "Pre-Checks are complete. Script will make environment changes in the next interaction." -bConsole $true
     Write-Log -itabs 2 "Getting User confirmation to proceed"
     do{
@@ -1474,9 +1543,10 @@ Function MainSub{
                 Write-Log -iTabs 4 "Skipping Sustainer SUG at this moment. No Action will be taken." -bConsole $true
             }
             #if SUG is new ( less than 35 days) remove Expired and Superseded KBs Only
-            elseif ($sug.DateCreated -gt $timeMonthSuperseded){                                
+            elseif ($sug.DateCreated -gt $timeMonthSuperseded){                                                
                 Write-Log -iTabs 4 "New SUG - Script will only remove Expired KBs."  -bConsole $true                
-                Review-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $false -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $false                
+                # FOR TESTINGReview-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $false -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $false                
+                Review-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $true -aAgedUpdates $AgedUpdates -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $true -aSupersededUpdates $SupersededUpdates -pkgSusName $pkgSustainer.Name -pkgSusList $pkgSustainerList
             }
             #if SUG is stable (DateCreate is lesser than Today-35 days and greater than Today-365 days) remove Expired and Superseded KBs Only. Delete Deployments to small DGs
             elseif ($sug.DateCreated -lt $tSustainerAge){                                
@@ -1494,10 +1564,12 @@ Function MainSub{
     #region 2.2 Review Sustainer SUG, removing Expired or Superseded KBs.        
         Write-Log -iTabs 2 "2.2 - Review Sustainer SUG, removing Expired or Superseded KBs." -bConsole $true -sColor cyan        
         try{
-            #SingleUpdateGroupMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -ManagedUpdateGroup $($($SUGTemplateName)+"Sustainer") -PurgeSuperseded $true -PurgeExpired $true -HandleAgedUpdates $false
+            Write-Log -iTabs 3 "Reviewing $($SUGTemplateName+"Sustainer") SUG, removing Superseded and Expired KBs."  -bConsole $true                
+            Review-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $($SUGTemplateName+"Sustainer") -CurUpdList $sugSustainer.Updates -PurgeSuperseded $true -PurgeExpired $true -HandleAgedUpdates $false -aExpUpdates $ExpiredUpdates -aSupersededUpdates $SupersededUpdates
+            Write-Log -iTabs 3 "Review is complete."  -bConsole $true                
         }
         catch {            
-            Write-Log -iTabs 3 "Error while processing Sustainer Eval. Aborting script." -bConsole $true -sColor red
+            Write-Log -iTabs 4 "Error while processing Sustainer Eval. Aborting script." -bConsole $true -sColor red
             $global:iExitCode = 9009
             return $global:iExitCode
         }        
@@ -1505,29 +1577,34 @@ Function MainSub{
     #region 2.3 Review Report SUG, removing Expired or Superseded KBs.        
         Write-Log  -iTabs 2 "2.3 - Review Report SUG, removing Expired or Superseded KBs." -bConsole $true -sColor cyan        
         try{
-            #SingleUpdateGroupMaintenance -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -ManagedUpdateGroup $($($SUGTemplateName)+"Report") -PurgeSuperseded $true -PurgeExpired $true -HandleAgedUpdates $false
+            Write-Log -iTabs 3 "Reviewing $($SUGTemplateName+"Report") SUG, removing Superseded and Expired KBs."  -bConsole $true                
+            Review-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $($SUGTemplateName+"Report") -CurUpdList $sugSustainer.Updates -PurgeSuperseded $true -PurgeExpired $true -HandleAgedUpdates $false -aExpUpdates $ExpiredUpdates -aSupersededUpdates $SupersededUpdates
+            Write-Log -iTabs 3 "Review is complete."  -bConsole $true
         }
         catch {            
-            Write-Log -iTabs 3 "Error while processing Report SUG Eval. Aborting script." -bConsole $true -sColor red
+            Write-Log -iTabs 4 "Error while processing Report SUG Eval. Aborting script." -bConsole $true -sColor red
             $global:iExitCode = 9010
             return $global:iExitCode
         }            
     #endregion
     #region 2.4 Review all SUGs, and ensure all KBs are member of <SUG_NAME>-Report SUG.        
-    Write-Log -iTabs 2 "2.4 - Review all SUGs, and ensure all valid KBs are member of $($SUGTemplateName)Report SUG." -bConsole $true -sColor cyan    
-    try{
-        #ReportingSoftwareUpdateGroupMaintenance -SiteServerName $SMSProvider -SiteCode $SCCMSite -ReportingUpdateGroup $($SUGTemplateName+"Report") -DeploySUGName $SUGTemplateName
-    }    
-    catch{        
-        Write-Log -iTabs 3 "Error while processing Report SUG. Aborting script." -bConsole $true -sColor red
-        $global:iExitCode = 9006
-        return $global:iExitCode
-    }    
+    Write-Log -iTabs 2 "2.4 - Review all SUGs, and ensure all valid KBs are member of $($SUGTemplateName)Report SUG." -bConsole $true -sColor cyan                        
+        try{
+            Write-Log -iTabs 3 "Reviewing $($SUGTemplateName+"Report") SUG, ensuring all valid KBs are present."  -bConsole $true                
+            $rptUpdList  = $($sugs | Where {$_.LocalizedDisplayName -eq "$($SUGTemplateName)Report"}).Updates
+            $nRptUpdList = $($sugs | Where {$_.LocalizedDisplayName -ne "$($SUGTemplateName)Report"}).Updates
+            Review-ReportSug -SiteServerName $SMSProvider -SiteCode $SCCMSite -rptSUGUpdName $($SUGTemplateName+"Report") -rptSUGUpdList $rptUpdList -nonRptUpdList $nRptUpdList
+        }    
+        catch{        
+            Write-Log -iTabs 4 "Error while processing Report SUG. Aborting script." -bConsole $true -sColor red
+            $global:iExitCode = 9006
+            return $global:iExitCode
+        }    
     #endregion    
     #region 2.5 Remove unused KBs from Packages (KBs not deployed) and Reports KBs deployed not in any package    
     Write-Log -iTabs 2 "2.5 Remove unused KBs from Packages (KBs not deployed) and list KBs deployed not in any package" -bConsole $true -sColor cyan    
     try{
-        #MaintainSoftwareUpdateGroupDeploymentPackages -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -PkgName $PKGTemplateName -SugName $SUGTemplateName
+        Maintain-DeploymentPackages -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -nonRptUpdList $nRptUpdList -pkgMonthlyList $pkgMonthlyList -pkgSustainerList $pkgSustainerList
     }
     catch{     
         Write-Log -iTabs 3 "Error while handling packages" -bConsole $true -sColor red
@@ -1571,9 +1648,9 @@ Function MainSub{
     $finalNumSugs = $sugs.Count
     Write-Log -itabs 3 "Initial Number of SUGs: $initNumSugs" -bConsole $true -sColor Darkyellow
     Write-Log -itabs 3 "Final Number of SUGs: $finalNumSugs" -bConsole $true -sColor yellow
-    $finalPkgSize = ($pkgs | Measure-Object -Property PackageSize -Sum).Sum/1024
-    Write-Log -itabs 3 "Initial Space used by Packages: $initPkgSize MB" -bConsole $true -sColor Darkyellow
-    Write-Log -itabs 3 "Final Space used by Packages: $finalPkgSize MB" -bConsole $true -sColor yellow    
+    $finalPkgSize = ($pkgs | Measure-Object -Property PackageSize -Sum).Sum/1024/1024
+    Write-Log -itabs 3 "Initial Space used by Packages: $([math]::Round($initPkgSize,2)) GB" -bConsole $true -sColor Darkyellow
+    Write-Log -itabs 3 "Final Space used by Packages: $([math]::Round($finalPkgSize,2)) GB" -bConsole $true -sColor yellow    
      
     Write-Log -iTabs 1 "Completed 3 - Post-Checks." -bConsole $true -sColor cyan
     Write-Log -iTabs 0 "" -bConsole $true
