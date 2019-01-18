@@ -427,28 +427,30 @@ function Review-SUGPair{
             $updatesToRemove += $updateID
         }
         elseIf (($HandleAgedUpdates) -and (Test-SCCMUpdateAge -UpdateID $UpdateID -OldUpdates $aAgedUpdates)){
-            Write-Log -iTabs 4 "KB Aged. Added to list to be moved into Sustainer SUG. (CI_ID:$UpdateId)." -bConsole $true -sColor DarkGreen
+            Write-Log -iTabs 4 "KB Aged. Added to list to be moved to Sustainer SUG. (CI_ID:$UpdateId)." -bConsole $true -sColor DarkGreen
             $updatesToMove += $updateID
         }
         else{
             #Write-Log -iTabs 4 "KB is valid. No action (CI_ID:$UpdateId)." -bConsole $true -sColor Green
         }
     }
+    #If Superseded or Expired updates were flagged, script will remove them now
     If ($updatesToRemove.Count -gt 0){
-        Write-Log -iTabs 3 "Removing $($updatesToRemove.Count) updates from $CurrentUpdateGroup due to being Expired or Superseded" -bConsole $true
-        if ($Action -eq "Run"){  
-            try{
-                Remove-CMSoftwareUpdateFromGroup -SoftwareUpdateId $updatesToRemove -SoftwareUpdateGroupName $CurrentUpdateGroup -Force
-                Write-Log -iTabs 4 "Updates removed from to $CurrentUpdateGroup" -bConsole $true -sColor Green
+        Write-Log -iTabs 3 "Removing $($updatesToRemove.Count) updates from $CurrentUpdateGroup due to being Expired or Superseded" -bConsole $true         
+        try{            
+            foreach ($upd in $updatesToRemove){
+                if ($Action -eq "Run"){ 
+                    Remove-CMSoftwareUpdateFromGroup -SoftwareUpdateId $upd -SoftwareUpdateGroupName $CurrentUpdateGroup -Force
+                }
+                Write-Log -iTabs 5 "Update $upd removed from $CurrentUpdateGroup" -bConsole $true -sColor DarkGreen                                
             }
-            catch{
-                Write-Log -iTabs 4 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red 
-            }
+            Write-Log -iTabs 4 "All Updates removed from $CurrentUpdateGroup" -bConsole $true -sColor Green
         }
-    }
-    else{
-        Write-Log -iTabs 4 "No need to remove updates from $CurrentUpdateGroup" -bConsole $true
-    }    
+        catch{
+            Write-Log -iTabs 4 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red 
+        }
+    }        
+    #If aged updates were flagged, script will check if they need to be downloaded to sustainer, add them to sustainer SUG and finally remove from current SUG
     If (($updatesToMove.Count -gt 0) -and ($HandleAgedUpdates)){
         Write-Log -iTabs 3 "Adding $($updatesToMove.Count) updates to $PersistentUpdateGroup due to being Aged" -bConsole $true            
         # checking if there is a need to download updates
@@ -462,52 +464,59 @@ function Review-SUGPair{
             }
         }
         # downloading updates if needed
-        if ($downloadUpd){
-            try{
-                Write-Log -iTabs 5 "Downloading updates." -bConsole $true
-                if ($Action -eq "Run"){
-                    Save-CMSoftwareUpdate -SoftwareUpdateId $updatesToDownload -DeploymentPackageName $pkgSusName -SoftwareUpdateLanguage "English"
+        if ($downloadUpd){            
+            Write-Log -iTabs 5 "Downloading updates." -bConsole $true
+            if ($Action -eq "Run"){
+                foreach ($upd in $updatesToDownload){
+                    try{                    
+                        Save-CMSoftwareUpdate -SoftwareUpdateId $upd -DeploymentPackageName $pkgSusName -SoftwareUpdateLanguage "English" -DisableWildcardHandling
+                    }
+                    catch{            
+                        Write-Log -iTabs 5 "Error Downloading $upd into $pkgSusName." -bConsole $true -sColor red
+                        Write-Log -iTabs 5 "Aborting script." -bConsole $true -sColor red
+                        $global:iExitCode = 9015
+                        return $global:iExitCode
+                    }
                 }
-                Write-Log -iTabs 5 "Updates Downloaded into $pkgSusName." -bConsole $true -sColor Green
+            }
+            Write-Log -iTabs 5 "Updates Downloaded into $pkgSusName." -bConsole $true -sColor Green
+        }
+        # Adding updates to Sustainer
+        $upInSustainer=$false        
+        if ($Action -eq "Run"){  
+            try{            
+                foreach ($upd in $updatesToMove){
+                    Add-CMSoftwareUpdateToGroup -SoftwareUpdateId $upd -SoftwareUpdateGroupName $CurrentUpdateGroup -Force                                                        
+                }
+                $upInSustainer=$true
+                Write-Log -iTabs 5 "Updates added to $PersistentUpdateGroup" -bConsole $true -sColor Green
             }
             catch{
-                Write-Log -iTabs 5 "Error Downloading into $pkgSusName." -bConsole $true -sColor red
+                Write-Log -iTabs 5 "Error while running Add-CMSoftwareUpdateToGroup" -bConsole $true -sColor Red 
                 Write-Log -iTabs 5 "Aborting script." -bConsole $true -sColor red
                 $global:iExitCode = 9015
                 return $global:iExitCode
             }
-        }
-        # Adding updates to Sustainer
-        $upInSustainer=$false
-        try{            
-            if ($Action -eq "Run"){  
-                Add-CMSoftwareUpdateToGroup -SoftwareUpdateId $updatesToRemove -SoftwareUpdateGroupName $CurrentUpdateGroup -Force                
-            }
-            $upInSustainer=$true
-            Write-Log -iTabs 5 "Updates added to $PersistentUpdateGroup" -bConsole $true -sColor Green
-        }
-        catch{
-            Write-Log -iTabs 5 "Error while running Add-CMSoftwareUpdateToGroup" -bConsole $true -sColor Red 
-        }
+        }        
         # removing updates from Monthly
         if ($upInSustainer){
-            try{
-                Write-Log -iTabs 3 "Removing $($updatesToRemove.Count) from $CurrentUpdateGroup due to being Aged" -bConsole $true
-                if ($Action -eq "Run"){  
-                    Remove-CMSoftwareUpdateFromGroup -SoftwareUpdateId $updatesToRemove -SoftwareUpdateGroupName $CurrentUpdateGroup -Force
+            Write-Log -iTabs 3 "Removing $($updatesToRemove.Count) from $CurrentUpdateGroup due to being Aged" -bConsole $true
+            if ($Action -eq "Run"){  
+                foreach ($upd in $updatesToMove){
+                    try{
+                        Remove-CMSoftwareUpdateFromGroup -SoftwareUpdateId $upd -SoftwareUpdateGroupName $CurrentUpdateGroup -Force
+                    }
+                    catch{
+                        Write-Log -iTabs 4 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red                 
+                    }
                     Write-Log -iTabs 4 "Updates removed from $CurrentUpdateGroup" -bConsole $true -sColor Green
                 }  
             }
-            catch{
-                Write-Log -iTabs 4 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red                 
-            }
+            #If SUG is empty, script will delete it           
         }       
         else{
             Write-Log -iTabs 4 "Script will not remove updates from $CurrentUpdateGroup since it failed to add to Sustainer" -bConsole $true            
         }
-    }
-    elseif ($HandleAgedUpdates){
-        Write-Log -iTabs 4 "No need to move updates to $PersistentUpdateGroup" -bConsole $true
     }    
 }
 function Maintain-DeploymentPackages {
@@ -1016,7 +1025,7 @@ Function MainSub{
             Write-Log -iTabs 3 "SCCM PS Module was found loaded in this session!" -bConsole $true -scolor Green
         }
         else{            
-            Write-Log -iTabs 3 "SCCM PS Module was not found in this session! Loading Module. This might take a few minutes..."
+            Write-Log -iTabs 3 "SCCM PS Module was not found in this session! Loading Module. This might take a few minutes..." -bConsole $true
             Try{                            
                 Write-Log  -iTabs 4 "Looking for Module in $(($Env:SMS_ADMIN_UI_PATH.Substring(0,$Env:SMS_ADMIN_UI_PATH.Length-5) + '\ConfigurationManager.psd1'))" -bConsole $true
                 Import-module ($Env:SMS_ADMIN_UI_PATH.Substring(0,$Env:SMS_ADMIN_UI_PATH.Length-5) + '\ConfigurationManager.psd1')                
@@ -1093,16 +1102,6 @@ Function MainSub{
                     }                
                 }while(!$sccmSiteTest)                  
             }
-            # Testing SCCM Drive
-            try{
-                cd $SCCMSite":"            
-            }
-            catch{
-                Write-Log -iTabs 4 "Unable to connect to SCCM PSDrive. Aborting Script" -bConsole $true -sColor red
-                Write-Log -iTabs 5 "Aborting script." -bConsole $true -sColor red
-                $global:iExitCode = 9005            
-                return $global:iExitCode
-            }
             #Setting SUG Template Name
             if ($SUGTemplateName -eq $null){
                 $sugTest = $false
@@ -1149,7 +1148,17 @@ Function MainSub{
                     }                     
                 }while(!$pkgTest)                            
             }
-        }                
+        }    
+        # Testing SCCM Drive
+        try{
+            cd $SCCMSite":"            
+        }
+        catch{
+            Write-Log -iTabs 4 "Unable to connect to SCCM PSDrive. Aborting Script" -bConsole $true -sColor red
+            Write-Log -iTabs 5 "Aborting script." -bConsole $true -sColor red
+            $global:iExitCode = 9005            
+            return $global:iExitCode
+        }            
         #Confirming Settings                              
         Write-Log -iTabs 3 "Setings were defined as:" -bConsole $true        
         Write-Log -iTabs 4 "SCCM Scope: $SCCMScope" -bConsole $true -sColor Yellow        
@@ -1311,7 +1320,7 @@ Function MainSub{
                         $PkgID = [System.Convert]::ToString($pkgMonth.PackageID)
                         # The query pulls a list of all software updates in the current package.  This query doesn't pull back a clean value so will store it and then manipulate the string to just get the CI information we need a bit later.
                         $Query="SELECT DISTINCT su.* FROM SMS_SoftwareUpdate AS su JOIN SMS_CIToContent AS cc ON  SU.CI_ID = CC.CI_ID JOIN SMS_PackageToContent AS  pc ON pc.ContentID=cc.ContentID  WHERE  pc.PackageID='$PkgID' AND su.IsContentProvisioned=1 ORDER BY su.DateRevised Desc"
-                        $QueryResults=@(Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Query $Query)                    
+                        $QueryResults=@(Get-WmiObject -ComputerName $SMSProvider -Namespace root\sms\site_$($sccmsite) -Query $Query)                    
                         $pkgMonthlyList = @()
                         # Work one by one through every CI that is part of the package adding each to the array to be stored in the hash table.
                         ForEach ($CI in $QueryResults){                
@@ -1320,8 +1329,11 @@ Function MainSub{
                             # Since the converted string has more text than just the CI value need to manipulate it to strip off the unneeded parts.
                             $Index = $IndividualCIinDeploymentPackage.IndexOf("=")
                             $IndividualCIinDeploymentPackage = $IndividualCIinDeploymentPackage.remove(0, ($Index + 1))
-                            $age = (((get-date -uformat %Y)-[int]$ci.DatePosted.Substring(0,4))*365)+(((get-date -uformat %m)-[int]$ci.DatePosted.Substring(4,2))*30)
-                            $pkgMonthlyList += $IndividualCIinDeploymentPackage                        
+                            $age = (((get-date -uformat %Y)-[int]$ci.DatePosted.Substring(0,4))*365)+(((get-date -uformat %m)-[int]$ci.DatePosted.Substring(4,2))*30)                            
+                            $ciInPkg = [pscustomobject]@{"CI_ID"="";"Age"=""}
+                            $ciInPkg.CI_ID = $IndividualCIinDeploymentPackage
+                            $ciInPkg.Age = $age
+                            $pkgMonthlyList += $ciInPkg                        
                         }
                         Write-Log -iTabs 5 "Total Updates: $($pkgMonthlyList.Count)" -bConsole $true -sColor Green                        
                     }
@@ -1381,7 +1393,7 @@ Function MainSub{
                         $PkgID = [System.Convert]::ToString($pkgSustainer.PackageID)
                         # The query pulls a list of all software updates in the current package.  This query doesn't pull back a clean value so will store it and then manipulate the string to just get the CI information we need a bit later.
                         $Query="SELECT DISTINCT su.* FROM SMS_SoftwareUpdate AS su JOIN SMS_CIToContent AS cc ON  SU.CI_ID = CC.CI_ID JOIN SMS_PackageToContent AS  pc ON pc.ContentID=cc.ContentID  WHERE  pc.PackageID='$PkgID' AND su.IsContentProvisioned=1 ORDER BY su.DateRevised Desc"
-                        $QueryResults=@(Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Query $Query)                    
+                        $QueryResults=@(Get-WmiObject -ComputerName $SMSProvider -Namespace root\sms\site_$($sccmsite) -Query $Query)                    
                         $pkgSustainerList = @()
                         # Work one by one through every CI that is part of the package adding each to the array to be stored in the hash table.
                         ForEach ($CI in $QueryResults){                
@@ -1389,8 +1401,12 @@ Function MainSub{
                             $IndividualCIinDeploymentPackage = [System.Convert]::ToString($CI)
                             # Since the converted string has more text than just the CI value need to manipulate it to strip off the unneeded parts.
                             $Index = $IndividualCIinDeploymentPackage.IndexOf("=")
-                            $IndividualCIinDeploymentPackage = $IndividualCIinDeploymentPackage.remove(0, ($Index + 1))
-                            $pkgSustainerList += $IndividualCIinDeploymentPackage                        
+                            $IndividualCIinDeploymentPackage = $IndividualCIinDeploymentPackage.remove(0, ($Index + 1))                            
+                            $age = (((get-date -uformat %Y)-[int]$ci.DatePosted.Substring(0,4))*365)+(((get-date -uformat %m)-[int]$ci.DatePosted.Substring(4,2))*30)                            
+                            $ciInPkg = [pscustomobject]@{"CI_ID"="";"Age"=""}
+                            $ciInPkg.CI_ID = $IndividualCIinDeploymentPackage
+                            $ciInPkg.Age = $age                            
+                            $pkgSustainerList += $ciInPkg      
                         }
                         Write-Log -iTabs 5 "Total Updates: $($pkgSustainerList.Count)" -bConsole $true -sColor Green          
                     }
@@ -1593,7 +1609,7 @@ Function MainSub{
             Write-Log -iTabs 3 "Reviewing $($SUGTemplateName+"Report") SUG, ensuring all valid KBs are present."  -bConsole $true                
             $rptUpdList  = $($sugs | Where {$_.LocalizedDisplayName -eq "$($SUGTemplateName)Report"}).Updates
             $nRptUpdList = $($sugs | Where {$_.LocalizedDisplayName -ne "$($SUGTemplateName)Report"}).Updates
-            Review-ReportSug -SiteServerName $SMSProvider -SiteCode $SCCMSite -rptSUGUpdName $($SUGTemplateName+"Report") -rptSUGUpdList $rptUpdList -nonRptUpdList $nRptUpdList
+            Maintain-ReportSug -SiteServerName $SMSProvider -SiteCode $SCCMSite -rptSUGUpdName $($SUGTemplateName+"Report") -rptSUGUpdList $rptUpdList -nonRptUpdList $nRptUpdList
         }    
         catch{        
             Write-Log -iTabs 4 "Error while processing Report SUG. Aborting script." -bConsole $true -sColor red
