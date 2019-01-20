@@ -37,7 +37,7 @@ if ((Get-Date).DayOfWeek -eq "Sunday"){
         #New-Item -ItemType directory -Path $backupFolder$date\$($vm.Name) | Out-Null
     }
     $backupFolders = Get-ChildItem -Path $backupFolder | Sort -Property CreationTime
-    While ($backupFolders.count -gt 8){
+    While ($backupFolders.count -gt 4){
         Remove-Item -Path $backupFolders[0].FullName -Recurse -Force
         Write-Host $backupFolders[0].Name
         $backupFolders = Get-ChildItem -Path $backupFolder | Sort -Property CreationTime    
