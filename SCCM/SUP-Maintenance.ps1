@@ -339,7 +339,7 @@ Function Set-ReportSug{
     foreach ($update in $rptSUGUpdList){
         if (!($nonRptUpdList -match $update)){
             $updToRemove += $update
-            Write-Log -iTabs 5 "$update flagged for removal" -bConsole $true       
+            #Write-Log -iTabs 5 "$update flagged for removal" -bConsole $true       
         }
     }
     #finding updates that aren't in Rpt SUG but are in any Non-Rpt SUG
@@ -347,43 +347,48 @@ Function Set-ReportSug{
     foreach ($update in $nonRptUpdList){
         if (!($rptSUGUpdList -match $update)){
             $updToAdd += $update      
-            Write-Log -iTabs 5 "$update flagged for addition" -bConsole $true        
+            #Write-Log -iTabs 5 "$update flagged for addition" -bConsole $true        
         }
     }
     #removing extra updates from SUG Rpt
     if ($updToRemove.Count -gt 0){        
-        Write-Log -iTabs 4 "Removing $($updToRemove.Count) from $rptSUGUpdName" -bConsole $true
-        if ($Action -eq "Run"){  
-            foreach ($upd in $updToRemove){
-                try{
+        Write-Log -iTabs 4 "Removing $($updToRemove.Count) from $rptSUGUpdName" -bConsole $true         
+        $updcnt=1
+        foreach ($upd in $updToRemove){
+            try{
+                if ($Action -eq "Run"){
                     Remove-CMSoftwareUpdateFromGroup -SoftwareUpdateId $upd -SoftwareUpdateGroupName $rptSUGUpdName -Force -warningaction silentlycontinue
-                    Write-Log -iTabs 5 "Removed $upd from $rptSUGUpdName" -bConsole $true
                 }
-                catch{
-                    Write-Log -iTabs 5 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red                 
-                }                
+                Write-Log -iTabs 5 "($updcnt/$($updToRemove.Count)) - Removed $upd from $rptSUGUpdName" -bConsole $true
+                $updcnt++
             }
-            Write-Log -iTabs 5 "Updates removed from $rptSUGUpdName" -bConsole $true -sColor Green              
-        }        
+            catch{
+                Write-Log -iTabs 5 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red                 
+            }                
+        }
+        Write-Log -iTabs 5 "$($updToRemove.Count) updates removed from $rptSUGUpdName" -bConsole $true -sColor Green                              
     }
     else{
         Write-Log -iTabs 4 "No updates to remove from $rptSUGUpdName" -bConsole $true
     }
     #adding updates
     if ($updToAdd.Count -gt 0){        
-        Write-Log -iTabs 4 "Adding $($updToAdd.Count) to $rptSUGUpdName" -bConsole $true
-        if ($Action -eq "Run"){ 
-            foreach ($upd in $updToAdd){ 
-                try{            
+        Write-Log -iTabs 4 "Adding $($updToAdd.Count) to $rptSUGUpdName" -bConsole $true         
+        $updcnt=1
+
+        foreach ($upd in $updToAdd){ 
+            try{       
+                if ($Action -eq "Run"){     
                     Add-CMSoftwareUpdateToGroup -SoftwareUpdateId $upd -SoftwareUpdateGroupName $rptSUGUpdName -Force -warningaction silentlycontinue               
-                    Write-Log -iTabs 5 "Added $upd to $rptSUGUpdName" -bConsole $true
                 }
-                catch{
-                    Write-Log -iTabs 5 "Error while running Add-CMSoftwareUpdateToGroup" -bConsole $true -sColor Red 
-                }                
+                Write-Log -iTabs 5 "($updcnt/$($updToAdd.Count)) - Added $upd to $rptSUGUpdName" -bConsole $true
+                $updcnt++
             }
-            Write-Log -iTabs 5 "Updates added to $rptSUGUpdName" -bConsole $true -sColor Green
-        }            
+            catch{
+                Write-Log -iTabs 5 "Error while running Add-CMSoftwareUpdateToGroup" -bConsole $true -sColor Red 
+            }                
+        }
+        Write-Log -iTabs 5 "$($updToAdd.Count) updates added to $rptSUGUpdName" -bConsole $true -sColor Green                 
     }
     else{
         Write-Log -iTabs 4 "No updates to add to $rptSUGUpdName" -bConsole $true
@@ -427,42 +432,44 @@ function Set-SUGPair{
 
     ForEach ($UpdateID in $CurUpdList){               
         If (($PurgeExpired) -and (Test-SccmUpdateExpired -UpdateID $UpdateID -ExpUpdates $aExpUpdates)){            
-            Write-Log -iTabs 4 "KB Expired. Added to List of KBs to be removed from SUG. (CI_ID:$UpdateId)." -bConsole $true -sColor DarkGray
+            Write-Log -iTabs 4 "(CI_ID:$UpdateId) Expired." -bConsole $true -sColor DarkGray
             $updatesToRemove += $updateID            
         }
         elseIf (($PurgeSuperseded) -and (Test-SCCMUpdateSuperseded -UpdateID $UpdateID -SupUpdate $aSupersededUpdates)){            
-            Write-Log -iTabs 4 "KB Superseded. Added to List of KBs to be removed from SUG. (CI_ID:$UpdateId)." -bConsole $true -sColor DarkYellow
+            Write-Log -iTabs 4 "(CI_ID:$UpdateId) Superseded." -bConsole $true -sColor DarkYellow
             $updatesToRemove += $updateID
         }
         elseIf (($HandleAgedUpdates) -and (Test-SCCMUpdateAge -UpdateID $UpdateID -OldUpdates $aAgedUpdates)){
-            Write-Log -iTabs 4 "KB Aged. Added to list to be moved to Sustainer SUG. (CI_ID:$UpdateId)." -bConsole $true -sColor DarkGreen
+            Write-Log -iTabs 4 "(CI_ID:$UpdateId) Aged." -bConsole $true -sColor DarkGreen
             $updatesToMove += $updateID
         }
         else{
-            #Write-Log -iTabs 4 "KB is valid. No action (CI_ID:$UpdateId)." -bConsole $true -sColor Green
+            #Write-Log -iTabs 4 "(CI_ID:$UpdateId) valid." -bConsole $true
         }
     }
     #If Superseded or Expired updates were flagged, script will remove them now
     If ($updatesToRemove.Count -gt 0){
         Write-Log -iTabs 4 "Removing $($updatesToRemove.Count) updates from $CurrentUpdateGroup due to being Expired or Superseded" -bConsole $true         
-        try{            
+        try{
+            $updcnt=1            
             foreach ($upd in $updatesToRemove){
                 if ($Action -eq "Run"){ 
                     Remove-CMSoftwareUpdateFromGroup -SoftwareUpdateId $upd -SoftwareUpdateGroupName $CurrentUpdateGroup -Force
                 }
-                Write-Log -iTabs 5 "Update $upd removed from $CurrentUpdateGroup" -bConsole $true -sColor DarkGreen                                
+                Write-Log -iTabs 5 "($updcnt/$($updatesToRemove.Count)) - Update $upd removed from $CurrentUpdateGroup" -bConsole $true
+                $updcnt++
             }
-            Write-Log -iTabs 4 "All flagged updates removed from $CurrentUpdateGroup" -bConsole $true -sColor Green
+            Write-Log -iTabs 5 "All $($updatesToRemove.Count) flagged updates removed from $CurrentUpdateGroup" -bConsole $true -sColor Green
         }
         catch{
-            Write-Log -iTabs 4 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red 
+            Write-Log -iTabs 5 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red 
         }
     }        
     #If aged updates were flagged, script will check if they need to be downloaded to sustainer, add them to sustainer SUG and finally remove from current SUG
     If (($updatesToMove.Count -gt 0) -and ($HandleAgedUpdates)){
         Write-Log -iTabs 4 "Adding $($updatesToMove.Count) updates to $PersistentUpdateGroup due to being Aged" -bConsole $true            
         # checking if there is a need to download updates
-        Write-Log -iTabs 4 "Checking if updates to be moved need to be downloaded." -bConsole $true
+        Write-Log -iTabs 5 "Checking if updates to be moved, have to be downloaded." -bConsole $true
         $updatesToDownload =@()
         $downloadUpd=$false
         foreach ($update in $updatesToMove){            
@@ -471,6 +478,7 @@ function Set-SUGPair{
                 $downloadUpd=$true
             }
         }
+        Write-Log -iTabs 5 "Found $($updatesToDownload.Count) updates to be downloaded." -bConsole $true
         # downloading updates if needed
         if ($downloadUpd){            
             Write-Log -iTabs 5 "Downloading $($updatesToDownload.Count) updates." -bConsole $true
@@ -480,32 +488,34 @@ function Set-SUGPair{
                     if ($Action -eq "Run"){
                         Save-CMSoftwareUpdate -SoftwareUpdateId $upd -DeploymentPackageName $pkgSusName -SoftwareUpdateLanguage "English" -DisableWildcardHandling -WarningAction SilentlyContinue                         
                     }
-                    Write-Log -iTabs 5 "$updcnt - Update $upd downloaded to $pkgSusName pkg." -bConsole $true -sColor green
+                    Write-Log -iTabs 6 "($updcnt/$($updatesToDownload.Count)) - Update $upd downloaded to $pkgSusName pkg." -bConsole $true
                     $updcnt++
                 }
                 catch{            
-                    Write-Log -iTabs 5 "Error Downloading $upd into $pkgSusName." -bConsole $true -sColor red                                        
+                    Write-Log -iTabs 6 "Error Downloading $upd into $pkgSusName." -bConsole $true -sColor red                                        
                     $global:iExitCode = 9015                     
                 }
             }
             
-            Write-Log -iTabs 5 "Updates Downloaded into $pkgSusName." -bConsole $true -sColor Green
+            Write-Log -iTabs 6 "$($updatesToDownload.Count) updates Downloaded into $pkgSusName." -bConsole $true -sColor Green
         }
         else{
             Write-Log -iTabs 5 "No need to download updates at this moment." -bConsole $true
         }
         # Adding updates to Sustainer
-        $upInSustainer=$false        
-        
+        $upInSustainer=$false                
         try{            
+            Write-Log -iTabs 5 "Adding $($updatesToMove.Count) to Sustainer SUG." -bConsole $true
+            $updcnt=1
             foreach ($upd in $updatesToMove){
                 if ($Action -eq "Run"){  
                     Add-CMSoftwareUpdateToGroup -SoftwareUpdateId $upd -SoftwareUpdateGroupName $PersistentUpdateGroup -Force -WarningAction SilentlyContinue
                 }
-            Write-Log -iTabs 5 "$upd added to $PersistentUpdateGroup." -bConsole $true
+                Write-Log -iTabs 5 "($updcnt/$($updatesToMove.Count)) - $upd added to $PersistentUpdateGroup." -bConsole $true
+                $updcnt++
             }
             $upInSustainer=$true
-            Write-Log -iTabs 5 "Updates added to $PersistentUpdateGroup" -bConsole $true -sColor Green
+            Write-Log -iTabs 5 "$($updatesToMove.Count) updates added to $PersistentUpdateGroup" -bConsole $true -sColor Green
         }
         catch{
             Write-Log -iTabs 5 "Error while running Add-CMSoftwareUpdateToGroup" -bConsole $true -sColor Red 
@@ -513,37 +523,39 @@ function Set-SUGPair{
             $global:iExitCode = 9015
             return $global:iExitCode
         }                
-        # removing updates from Monthly
+        # removing updates from Monthly SUG
         if ($upInSustainer){
-            Write-Log -iTabs 3 "Removing $($updatesToMove.Count) from $CurrentUpdateGroup due to being Aged" -bConsole $true
-            if ($Action -eq "Run"){  
-                foreach ($upd in $updatesToMove){
-                    try{
+            Write-Log -iTabs 4 "Removing $($updatesToMove.Count) from $CurrentUpdateGroup due to being Aged" -bConsole $true            
+            $updcnt=1
+            foreach ($upd in $updatesToMove){
+                try{
+                    if ($Action -eq "Run"){  
                         Remove-CMSoftwareUpdateFromGroup -SoftwareUpdateId $upd -SoftwareUpdateGroupName $CurrentUpdateGroup -Force
                     }
-                    catch{
-                        Write-Log -iTabs 4 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red                 
+                    Write-Log -iTabs 5 "($updcnt/$($updatesToMove.Count)) - $upd added to $PersistentUpdateGroup." -bConsole $true
+                    $updcnt++
+                }
+                catch{
+                    Write-Log -iTabs 4 "Error while running Remove-CMSoftwareUpdateFromGroup" -bConsole $true -sColor Red                 
+                }                
+            }    
+            Write-Log -iTabs 4 "$($updatesToMove.Count) updates removed from $CurrentUpdateGroup" -bConsole $true -sColor Green          
+            #if updates removed and moved adds up to total updates, delete SUG
+            if ($CurUpdList.count -eq ($updatesToMove.Count+$updatesToRemove.Count)){
+                Write-Log -iTabs 4 "No updates left in $CurrentUpdateGroup. SUG will be deleted." -bConsole $true                    
+                try{
+                    if ($action -eq "Run"){
+                        Remove-CMSoftwareUpdateGroup -Name $CurrentUpdateGroup -Force
                     }
-                    Write-Log -iTabs 4 "Updates removed from $CurrentUpdateGroup" -bConsole $true -sColor Green
-                }  
+                    Write-Log -iTabs 5 "SUG was deleted" -bConsole $true           
+                }
+                catch{
+                    Write-Log -iTabs 5 "Error while deleting SUG." -bConsole $true -sColor Red                
+                }
             }
-            #If SUG is empty, script will delete it           
-        }       
+        }
         else{
             Write-Log -iTabs 4 "Script will not remove updates from $CurrentUpdateGroup since it failed to add to Sustainer" -bConsole $true            
-        }
-    }    
-    #if updates removed and moved adds up to total updates, delete SUG
-    if ($CurUpdList.count -eq ($updatesToMove.Count+$updatesToRemove.Count)){
-        Write-Log -iTabs 3 "No updates remained in $CurrentUpdateGroup. SUG will be deleted." -bConsole $true                    
-        try{
-            if ($action -eq "Run"){
-                Remove-CMSoftwareUpdateGroup -Name $CurrentUpdateGroup -Force
-            }
-            Write-Log -iTabs 4 "SUG was deleted" -bConsole $true -sColor Green            
-        }
-        catch{
-            Write-Log -iTabs 4 "Error while deleting SUG." -bConsole $true -sColor Red                
         }
     }
 }
@@ -607,7 +619,7 @@ function Set-DeploymentPackages {
                 if ($action -eq "Run"){                
                     Save-CMSoftwareUpdate -SoftwareUpdateId $upd -DeploymentPackageName $pkgSustainer -SoftwareUpdateLanguage "English" -DisableWildcardHandling -WarningAction SilentlyContinue                         
                 }
-                Write-Log -iTabs 5 "$updcnt - Update $upd downloaded to Sustainer Pkg." -bConsole $true -sColor green
+                Write-Log -iTabs 5 "($updcnt/$($updatesToDownloadSus.count)) - Update $upd downloaded to Sustainer Pkg." -bConsole $true
                 $updcnt++
             }
             catch{
@@ -625,7 +637,7 @@ function Set-DeploymentPackages {
                 if ($action -eq "Run"){                
                     Save-CMSoftwareUpdate -SoftwareUpdateId $upd -DeploymentPackageName $pkgMonthly -SoftwareUpdateLanguage "English" -DisableWildcardHandling -WarningAction SilentlyContinue                         
                 }
-                Write-Log -iTabs 5 "$updcnt - Update $upd downloaded to Monthly Pkg." -bConsole $true -sColor green
+                Write-Log -iTabs 5 "($updcnt/$($updatesToDownloadMonth.count)) - Update $upd downloaded to Monthly Pkg." -bConsole $true
                 $updcnt++
             }
             catch{
@@ -905,23 +917,59 @@ function Get-NumUpdInGroups{
         $sugs
         )    
     # Loop through each software update group and check the total number of updates in each.    
-    ForEach ($sug in $sugs){        
+    ForEach ($sug in $sugs | Sort-Object $sugs.LocalizedDisplayName){        
         # Only test update groups that are deployed.  Reporting software update groups may be used
         # in some environments and as long as these groups aren't deployed they can contain greater
         # than 1000 updates.  Accordingly, warning for those groups doesn't apply.
-        if (($Group.Updates.Count -gt 900) -and ($Group.IsDeployed -eq 'True')){
+        if (($sug.Updates.Count -gt 900) -and ($sug.IsDeployed -eq 'True')){
             $textColor="Red"
         }
         else{
-            $textColor="Green"
+            $textColor="white"
         }           
-        write-log -itabs 4 "Updates found: $($sug.Updates.Count) SUG: $($sug.LocalizedDisplayName)" -bConsole $true -sColor $textColor
+        write-log -itabs 4 "# of Updates found in $($sug.LocalizedDisplayName): $($sug.Updates.Count)." -bConsole $true -sColor $textColor
         if ($textcolor -eq "Red"){            
             write-log -itabs 5 "SUGs deployed should contain less than 900 updates. Consider splitting this SUG into more." -bConsole $true -sColor $textColor
         }
     }     
 }
-
+function Delete-OldDeployments{
+    Param(
+        [Parameter(Mandatory = $true)]
+        $SiteServerName,
+        [Parameter(Mandatory = $true)]
+        $SiteCode,
+        [Parameter(Mandatory = $true)]
+        $sugID,
+        [Parameter(Mandatory = $true)]
+        $sugTemplateName
+        )   
+    #list all deployments
+        Write-Log -iTabs 4 "Getting all deployments from Software Update Group" -bConsole $true
+        $deployments = Get-CMUpdateGroupDeployment -Name "$sugTemplateName*" | Where-Object {$_.AssignedUpdateGroup -eq "$sugID"}
+        foreach ($deployment in $deployments){
+            $collection = Get-CMCollection -Id $deployment.TargetCollectionID
+            if (
+                ($collection.Name -like "*DG0*") -or
+                ($collection.Name -like "*DG1*") -or
+                ($collection.Name -like "*DG2*") -or
+                ($collection.Name -like "*DG3*") -or
+                ($collection.Name -like "*JRVARAN*")
+            ){
+                Write-Log -iTabs 5 "$($deployment.AssignmentName) was found as old deployment" -bConsole $true
+                try{
+                    if ($action -eq "Run"){
+                        Remove-CMUpdateGroupDeployment -DeploymentId $deployment.deploymentID
+                    }
+                    Write-Log -iTabs 6 "Deployment removed" -bConsole $true
+                }
+                catch{
+                    Write-Log -iTabs 6 "Error while Deployment removed" -bConsole $true -sColor red
+                }
+            }
+        }
+        Write-Log -iTabs 4 "Deployment clean-up is complete" -bConsole $true
+}
 #endregion
 # --------------------------------------------------------------------------------------------
 
@@ -1192,7 +1240,7 @@ Function MainSub{
                 try{
                     $defaultAdr = Get-CMAutoDeploymentRule -fast -Name "$($SUGTemplateName)ADR"
                     if ($defaultAdr.Count -gt 0){                        
-                        Write-Log -iTabs 4 "Default ADR ($($SUGTemplateName)ADR) was found in SCCM Environment." -bConsole $true -sColor Green
+                        Write-Log -iTabs 4 "Default ADR ($($SUGTemplateName)ADR) was found in SCCM Environment." -bConsole $true
                     }
                     else{                        
                         Write-Log -iTabs 4 "Default ADR ($($SUGTemplateName)ADR) was not found in SCCM Environment." -bConsole $true -sColor red
@@ -1223,7 +1271,7 @@ Function MainSub{
                     }
                     #RptSUG was found
                     if ($sugRpt.Count -gt 0){                        
-                        Write-Log -iTabs 4 "$($SUGTemplateName)Report was found." -bConsole $true -sColor Green
+                        Write-Log -iTabs 4 "$($SUGTemplateName)Report was found." -bConsole $true
                     }
                     #Rpt was not found
                     else{                        
@@ -1243,7 +1291,7 @@ Function MainSub{
                             Write-Log -iTabs 4 "Creating $($SUGTemplateName)Report..." -bConsole $true
                             try{
                                 New-CMSoftwareUpdateGroup -Name "$($SUGTemplateName)Report" | Out-Null                                
-                                Write-Log -iTabs 5 "$($SUGTemplateName)Report was created" -bConsole $true -sColor green                                
+                                Write-Log -iTabs 5 "$($SUGTemplateName)Report was created" -bConsole $true
                                 Write-Log -iTabs 5 "Reloading SUG Array." -bConsole $true 
                                 $sugs = Get-CMSoftwareUpdateGroup | Where-Object {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
                             }    
@@ -1256,7 +1304,7 @@ Function MainSub{
                         }                      
                     }
                     if ($sugSustainer.Count -gt 0){                        
-                        Write-Log -iTabs 4 "$($SUGTemplateName)Sustainer was found." -bConsole $true -sColor Green
+                        Write-Log -iTabs 4 "$($SUGTemplateName)Sustainer was found." -bConsole $true
                     }
                     #Sustainer was not found
                     else{
@@ -1454,7 +1502,7 @@ Function MainSub{
             Write-Log -iTabs 3 "Getting all Expired KBs from SCCM WMI." -bConsole $true
             try{
                 $ExpiredUpdates = Get-CMSoftwareUpdate -IsExpired $true -fast | Select-Object -Property CI_ID
-                Write-Log -iTabs 4 "Expired KBs: $($ExpiredUpdates.Count)" -bConsole $true -sColor Yellow
+                Write-Log -iTabs 4 "Expired KBs: $($ExpiredUpdates.Count)" -bConsole $true
             }
             catch{
                 Write-Log -iTabs 4 "Error getting Update info from SCCM WMI." -bConsole $true -sColor red
@@ -1467,7 +1515,7 @@ Function MainSub{
             Write-Log -iTabs 3 "Getting all Superseded KBs from SCCM WMI." -bConsole $true
             try{
                 $SupersededUpdates = Get-CMSoftwareUpdate -IsSuperseded $true -fast | Select-Object -Property CI_ID
-                Write-Log -iTabs 4 "Superseded KBs: $($SupersededUpdates.Count)" -bConsole $true -sColor Yellow
+                Write-Log -iTabs 4 "Superseded KBs: $($SupersededUpdates.Count)" -bConsole $true
             }
             catch{
                 Write-Log -iTabs 4 "Error getting Update info from SCCM WMI." -bConsole $true -sColor red
@@ -1480,7 +1528,7 @@ Function MainSub{
             Write-Log -iTabs 3 "Getting all Aged KBs from SCCM WMI." -bConsole $true
             try{
                 $AgedUpdates = Get-CMSoftwareUpdate -DatePostedMax $(Get-Date).AddDays(-$timeSustainerAge) -IsSuperseded $false -IsExpired $false -fast | Select-Object -Property CI_ID
-                Write-Log -iTabs 4 "Aged KBs: $($AgedUpdates.Count)" -bConsole $true -sColor Yellow
+                Write-Log -iTabs 4 "Aged KBs: $($AgedUpdates.Count)" -bConsole $true
             }
             catch{
                 Write-Log -iTabs 4 "Error getting Update info from SCCM WMI." -bConsole $true -sColor red
@@ -1494,7 +1542,7 @@ Function MainSub{
     Write-Log -iTabs 2 "1.4 - Finalizing Pre-Checks:" -bConsole $true -sColor cyan    
     Write-Log -itabs 3 "SUG Information - These SUGs will be evaluated/changed by this script." -bConsole $true
     #$sugs | ft    
-    foreach ($sug in $sugs){
+    foreach ($sug in $sugs| Sort-Object $sug.LocalizedDisplayName){
         #$sugName = $sug.LocalizedDisplayName
         Write-Log -itabs 4 $sug.LocalizedDisplayName -bConsole $true
     }    
@@ -1504,20 +1552,20 @@ Function MainSub{
         Write-Log -itabs 4 $pkgName -bConsole $true
     }    
     $initNumUpdates = ($sugs | Where-Object {$_.LocalizedDisplayName -ne $SUGTemplateName+"Report"} | Measure-Object -Property NumberofUpdates -Sum).Sum
-    Write-Log -itabs 3 "Number of Updates: $initNumUpdates" -bConsole $true -sColor yellow
+    Write-Log -itabs 3 "Number of Updates: $initNumUpdates" -bConsole $true
     $initRptNumUpdates = ($sugs | Where-Object {$_.LocalizedDisplayName -eq $SUGTemplateName+"Report"}).NumberofUpdates
-    Write-Log -itabs 3 "Number of Updates in Report SUG: $initRptNumUpdates" -bConsole $true -sColor yellow
+    Write-Log -itabs 3 "Number of Updates in Report SUG: $initRptNumUpdates" -bConsole $true
     $initNumSugs = $sugs.Count
-    Write-Log -itabs 3 "Number of SUGs: $initNumSugs" -bConsole $true -sColor yellow
+    Write-Log -itabs 3 "Number of SUGs: $initNumSugs" -bConsole $true
     $initPkgSize = ($pkgs | Measure-Object -Property PackageSize -Sum).Sum/1024/1024
-    Write-Log -itabs 3 "Space used by Packages: $([math]::Round($initPkgSize,2)) GB" -bConsole $true -sColor yellow
+    Write-Log -itabs 3 "Space used by Packages: $([math]::Round($initPkgSize,2)) GB" -bConsole $true
     Write-Log -itabs 2 "Pre-Checks are complete. Script will make environment changes in the next interaction." -bConsole $true
     Write-Log -itabs 2 "Getting User confirmation to proceed"
     do{
         Write-Log -iTabs 3 "Above you have the list of Packages and Software Update Groups which will be managed by this script." -bConsole $true
         Write-Log -iTabs 3 "Review the list above and make sureare indeed the right targets for actions." -bConsole $true
-        Write-Log -iTabs 3 "Script will make environment changes in the next interaction" -ForegroundColor Yellow
-        $answer = Read-Host "                                  Do you want to proceed? [Y/n]"        
+        Write-Log -iTabs 3 "Script will make environment changes in the next interaction" -bConsole $true -scolor Yellow
+        $answer = Read-Host "                                  |Do you want to proceed? [Y/n]"        
     } while (($answer -ne "Y") -and ($answer -ne "n"))
     if ($answer -eq "n"){
         Write-Log -iTabs 3 "User Aborting script." -bConsole $true -sColor red
@@ -1553,18 +1601,19 @@ Function MainSub{
             #if SUG is new ( less than 35 days) remove Expired and Superseded KBs Only
             elseif ($sug.DateCreated -gt $timeMonthSuperseded){                                                
                 Write-Log -iTabs 4 "New SUG - Script will only remove Expired KBs."  -bConsole $true                
-                # FOR TESTINGReview-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $false -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $false                
-                Review-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $true -aAgedUpdates $AgedUpdates -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $true -aSupersededUpdates $SupersededUpdates -pkgSusName $pkgSustainer.Name -pkgSusList $pkgSustainerList
+                Set-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $false -aAgedUpdates $AgedUpdates -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $false -aSupersededUpdates $SupersededUpdates -pkgSusName $pkgSustainer.Name -pkgSusList $pkgSustainerList
+                #Set-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $true -aAgedUpdates $AgedUpdates -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $true -aSupersededUpdates $SupersededUpdates -pkgSusName $pkgSustainer.Name -pkgSusList $pkgSustainerList
             }
             #if SUG is stable (DateCreate is lesser than Today-35 days and greater than Today-365 days) remove Expired and Superseded KBs Only. Delete Deployments to small DGs
             elseif ($sug.DateCreated -lt $tSustainerAge){                                
                 Write-Log -iTabs 4 "Removing Expired and Superseeded KBs. Deployments to initial DGs will be deleted."  -bConsole $true
-                Review-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $false -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $true -aSupersededUpdates $SupersededUpdates                
+                Set-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $false -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $true -aSupersededUpdates $SupersededUpdates                
+                Delete-OldDeployments -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -sugID $sug.CI_ID
             }
             #if SUG is old (DateCreate is lesser than Today-365 days) remove Expired and Superseded KBs Only. Move valid KBs to Sustainer and Delete SUG
             elseif ($sug.DateCreated -gt $tSustainerAge){                                
                 Write-Log -iTabs 4 "Removing Expired KBs and Superseeded KBs, Moving year-old Valid KBs into Sustainer SUG. Deployments to initial DGs will be deleted." -bConsole $true
-                Review-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $true -aAgedUpdates $AgedUpdates -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $true -aSupersededUpdates $SupersededUpdates                
+                Set-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $true -aAgedUpdates $AgedUpdates -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $true -aSupersededUpdates $SupersededUpdates                
             }            
             $sugcount++
         }        
@@ -1573,7 +1622,7 @@ Function MainSub{
         Write-Log -iTabs 2 "2.2 - Review Sustainer SUG, removing Expired or Superseded KBs." -bConsole $true -sColor cyan        
         try{
             Write-Log -iTabs 3 "Reviewing $($SUGTemplateName+"Sustainer") SUG, removing Superseded and Expired KBs."  -bConsole $true                
-            Review-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $($SUGTemplateName+"Sustainer") -CurUpdList $sugSustainer.Updates -PurgeSuperseded $true -PurgeExpired $true -HandleAgedUpdates $false -aExpUpdates $ExpiredUpdates -aSupersededUpdates $SupersededUpdates
+            Set-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $($SUGTemplateName+"Sustainer") -CurUpdList $sugSustainer.Updates -PurgeSuperseded $true -PurgeExpired $true -HandleAgedUpdates $false -aExpUpdates $ExpiredUpdates -aSupersededUpdates $SupersededUpdates
             Write-Log -iTabs 3 "Review is complete."  -bConsole $true                
         }
         catch {            
@@ -1586,7 +1635,7 @@ Function MainSub{
         Write-Log  -iTabs 2 "2.3 - Review Report SUG, removing Expired or Superseded KBs." -bConsole $true -sColor cyan        
         try{
             Write-Log -iTabs 3 "Reviewing $($SUGTemplateName+"Report") SUG, removing Superseded and Expired KBs."  -bConsole $true                
-            Review-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $($SUGTemplateName+"Report") -CurUpdList $sugSustainer.Updates -PurgeSuperseded $true -PurgeExpired $true -HandleAgedUpdates $false -aExpUpdates $ExpiredUpdates -aSupersededUpdates $SupersededUpdates
+            Set-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $($SUGTemplateName+"Report") -CurUpdList $sugSustainer.Updates -PurgeSuperseded $true -PurgeExpired $true -HandleAgedUpdates $false -aExpUpdates $ExpiredUpdates -aSupersededUpdates $SupersededUpdates
             Write-Log -iTabs 3 "Review is complete."  -bConsole $true
         }
         catch {            
@@ -1598,10 +1647,11 @@ Function MainSub{
     #region 2.4 Review all SUGs, and ensure all KBs are member of <SUG_NAME>-Report SUG.        
     Write-Log -iTabs 2 "2.4 - Review all SUGs, and ensure all valid KBs are member of $($SUGTemplateName)Report SUG." -bConsole $true -sColor cyan                        
         try{
-            Write-Log -iTabs 3 "Reviewing $($SUGTemplateName+"Report") SUG, ensuring all valid KBs are present."  -bConsole $true                
+            Write-Log -iTabs 3 "Reviewing $($SUGTemplateName+"Report") SUG, ensuring all valid KBs are present."  -bConsole $true    
+            $sugs = Get-CMSoftwareUpdateGroup | Where-Object {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                                                           
             $rptUpdList  = $($sugs | Where-Object {$_.LocalizedDisplayName -eq "$($SUGTemplateName)Report"}).Updates
             $nRptUpdList = $($sugs | Where-Object {$_.LocalizedDisplayName -ne "$($SUGTemplateName)Report"}).Updates
-            Maintain-ReportSug -SiteServerName $SMSProvider -SiteCode $SCCMSite -rptSUGUpdName $($SUGTemplateName+"Report") -rptSUGUpdList $rptUpdList -nonRptUpdList $nRptUpdList
+            Set-ReportSug -SiteServerName $SMSProvider -SiteCode $SCCMSite -rptSUGUpdName $($SUGTemplateName+"Report") -rptSUGUpdList $rptUpdList -nonRptUpdList $nRptUpdList
         }    
         catch{        
             Write-Log -iTabs 4 "Error while processing Report SUG. Aborting script." -bConsole $true -sColor red
@@ -1612,7 +1662,7 @@ Function MainSub{
     #region 2.5 Remove unused KBs from Packages (KBs not deployed) and Reports KBs deployed not in any package    
     Write-Log -iTabs 2 "2.5 Remove unused KBs from Packages (KBs not deployed) and list KBs deployed not in any package" -bConsole $true -sColor cyan    
     try{
-        Maintain-DeploymentPackages -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -nonRptUpdList $nRptUpdList -pkgMonthlyList $pkgMonthlyList -pkgSustainerList $pkgSustainerList -pkgMonthly $pkgMonth.Name -pkgSustainer $pkgSustainer.Name
+        Set-DeploymentPackages -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -nonRptUpdList $nRptUpdList -pkgMonthlyList $pkgMonthlyList -pkgSustainerList $pkgSustainerList -pkgMonthly $pkgMonth.Name -pkgSustainer $pkgSustainer.Name
     }
     catch{     
         Write-Log -iTabs 3 "Error while handling packages" -bConsole $true -sColor red
@@ -1621,7 +1671,7 @@ Function MainSub{
     #region 2.6 EvaluateNumberofUpdatesinGroups checking if SUGs are over 900 KBs limit    
     Write-Log -iTabs 2 "2.6 EvaluateNumberofUpdatesinGroups checking if SUGs are over 900 KBs limit" -bConsole $true -sColor cyan    
     try{
-        #EvaluateNumberOfUpdatesinGRoups -SiteServerName $SMSProvider -SiteCode $SCCMSite -SugName $SUGTemplateName
+        Get-NumUpdInGroups -SiteServerName $SMSProvider -SiteCode $SCCMSite -sugs $sugs
     }
     catch{        
         Write-Log -iTabs 3 "Error while evaliating SUGs" -bConsole $true -sColor red
@@ -1677,7 +1727,7 @@ If($DebugLog) { $ErrorActionPreference = "Stop" }
 
 # Prior to logging, determine if we are in the 32-bit scripting host on a 64-bit machine and need and want to re-launch
 If(!($NoRelaunch) -and $bIs64bit -and ($PSHOME -match "SysWOW64") -and $bAllow64bitRelaunch) {
-    Relaunch-In64
+    Launch-In64
 }
 Else {
     # Starting the log
@@ -1695,7 +1745,7 @@ Else {
         }                
     }
     # Stopping the log
-    End-Log
+    Finish-Log
 }
 # Quiting with exit code
 Exit $global:iExitCode

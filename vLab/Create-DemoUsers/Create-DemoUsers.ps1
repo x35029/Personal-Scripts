@@ -9,20 +9,20 @@ Push-Location (Split-Path ($MyInvocation.MyCommand.Path))
 # Global variables
 #
 # User properties
-$ou = "OU=Users,OU=Test,OU=HK,DC=hk,DC=test" # Which OU to create the user in
-$initialPassword = "Password123"             # Initial password set for the user
-$orgShortName = "AC"                         # This is used to build a user's sAMAccountName
-$dnsDomain = "acme.com"                      # Domain is used for e-mail address and UPN
-$company = "ACME Corp."                      # Used for the user object's company attribute
+$ou = "OU=StandardAccounts,DC=vlab,DC=varandas,DC=com" # Which OU to create the user in
+$initialPassword = 'Pa$$w0rd'             # Initial password set for the user
+$orgShortName = "v"                         # This is used to build a user's sAMAccountName
+$dnsDomain = "vlab.varandas.com"                      # Domain is used for e-mail address and UPN
+$company = "vLab - Varandas"                      # Used for the user object's company attribute
 $departments = (                             # Departments and associated job titles to assign to the users
-                  @{"Name" = "Finance & Accounting"; Positions = ("Manager", "Accountant", "Data Entry")},
-                  @{"Name" = "Human Resources"; Positions = ("Manager", "Administrator", "Officer", "Coordinator")},
-                  @{"Name" = "Sales"; Positions = ("Manager", "Representative", "Consultant")},
+                  @{"Name" = "Finance & Accounting"; Positions = ("VIP","Controller","Manager","SectionManager","Accountant","Analyst","Trainee")},
+                  @{"Name" = "Human Resources"; Positions = ("HR-Manager", "Embedded", "Analyst", "Trainee")},
+                  @{"Name" = "Sales"; Positions = ("VIP","Manager", "Representative", "Consultant")},
                   @{"Name" = "Marketing"; Positions = ("Manager", "Coordinator", "Assistant", "Specialist")},
                   @{"Name" = "Engineering"; Positions = ("Manager", "Engineer", "Scientist")},
                   @{"Name" = "Consulting"; Positions = ("Manager", "Consultant")},
-                  @{"Name" = "IT"; Positions = ("Manager", "Engineer", "Technician")},
-                  @{"Name" = "Planning"; Positions = ("Manager", "Engineer")},
+                  @{"Name" = "IT"; Positions = ("VIP","Manager", "Engineer", "Technician","Analyst","Supervisor")},
+                  @{"Name" = "Planning"; Positions = ("VIP","Manager", "Engineer")},
                   @{"Name" = "Contracts"; Positions = ("Manager", "Coordinator", "Clerk")},
                   @{"Name" = "Purchasing"; Positions = ("Manager", "Coordinator", "Clerk", "Purchaser")}
                )
