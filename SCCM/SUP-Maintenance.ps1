@@ -43,7 +43,7 @@ $ErrorActionPreference 	= "Continue"	# SilentlyContinue / Stop / Continue
 # Known Issues: None
 #
 # Arguments: 
-Function HowTo-Script(){
+Function How-ToScript(){
     Write-Log -sMessage "============================================================================================================================" -iTabs 1            
     Write-Log -sMessage "NAME:" -iTabs 1
         Write-Log -sMessage ".\$sScriptName " -iTabs 2     
@@ -116,7 +116,7 @@ Function HowTo-Script(){
 
 # --------------------------------------------------------------------------------------------
 #region FUNCTIONS
-Function Relaunch-In64{
+Function Launch-In64{
 # --------------------------------------------------------------------------------------------	
 # Sub Name: RelaunchIn64
 
@@ -231,7 +231,7 @@ Function Write-Log(){
             Write-EventLog -LogName Application -Source $sSource -EntryType $sEventLogType -EventId $iEventID -Message $sMessage -ErrorAction SilentlyContinue
         }
         catch{
-            $global:iExitCode = 5003
+            
         }
     }
     # Write Content to Console
@@ -240,7 +240,7 @@ Function Write-Log(){
     }
 	
 }           ##End of Write-Log function
-Function End-Log(){
+Function Finish-Log(){
 # --------------------------------------------------------------------------------------------
 # Function EndLog
 # Purpose: Writes the last log information to the log file
@@ -314,7 +314,7 @@ Function Test-SCCMUpdateAge{
         return $false
     }
 }
-Function Maintain-ReportSug{
+Function Set-ReportSug{
 # This script is designed to ensure consistent membership of the reporting software update group.
 # In this version it is assumed there is only one reporting software update group.  A reporting software
 # update group is assumed to never be deployed.  Accordingly, The script will first check to see if the 
@@ -389,7 +389,7 @@ Function Maintain-ReportSug{
         Write-Log -iTabs 4 "No updates to add to $rptSUGUpdName" -bConsole $true
     }
 }
-function Review-SUGPair{
+function Set-SUGPair{
 
     Param(
         [Parameter(Mandatory = $true)]
@@ -547,7 +547,7 @@ function Review-SUGPair{
         }
     }
 }
-function Maintain-DeploymentPackages {
+function Set-DeploymentPackages {
     Param(
         [Parameter(Mandatory = $false)]
         $SiteProviderServerName,
@@ -611,8 +611,7 @@ function Maintain-DeploymentPackages {
                 $updcnt++
             }
             catch{
-                Write-Log -iTabs 5 "$updcnt - Error Downloading $upd into Sustainer Pkg." -bConsole $true -sColor red                                        
-                $global:iExitCode = 9015
+                Write-Log -iTabs 5 "$updcnt - Error Downloading $upd into Sustainer Pkg." -bConsole $true -sColor red                                                        
                 $updcnt++
             }
         }
@@ -894,7 +893,7 @@ foreach ($UpdateGroup in $HTUpdateGroupsandUpdatestoRemove.Keys){
 }
 #>
 }
-function Evaluate-NumUpdInGroups{
+function Get-NumUpdInGroups{
 # This script will examine the count of updates in each deployed update group and provide a warning
 # when the number of updates in a given group exceeds 900.
     Param(
@@ -1037,7 +1036,7 @@ Function MainSub{
     #region 1.1 Confirm Script Arguments            
         Write-Log -iTabs 2 "1.1 Checking Script arguments" -bConsole $TRUE -sColor Cyan
         Write-Log -iTabs 3 "Script is running with Command Line: $sCMDArgs" -bConsole $true -bTxtLog $false
-        if ($SCCMSite -eq $null){
+        if ($null -eq $SCCMSite){
             if ($Action -eq "Auto-Run"){                
                 Write-Log -itabs 3 "Action 'Auto-Run' is not supported with SCCMScope 'Other'." -bConsole $true
                 HowTo-Script                
@@ -1047,7 +1046,7 @@ Function MainSub{
             }            
             Write-Log -iTabs 3 "SCCMScope 'Other' requires data to be collected from User." -bConsole $true
             #Setting SMS Provider
-            if ($SMSProvider -eq $null){                                
+            if ($null -eq $SMSProvider){                                
                 $smsProvTest = $false
                 do{
                     $SMSProvider = Read-Host "                                      SMS Provider [<ServerFQDN>/Abort] "                    
@@ -1069,7 +1068,7 @@ Function MainSub{
                 }while(!$smsProvTest)                
             }  
             #Setting SCCM Site        
-            if ($SCCMSite -eq $null){
+            if ($null -eq $SCCMSite){
                 $sccmSiteTest = $false
                 do{
                     $SCCMSite = Read-Host "                                      SCCM Site [<SITECODE>/Abort] "
@@ -1081,7 +1080,7 @@ Function MainSub{
                     Write-Log -iTabs 5 "User set '$SCCMSite' as SCCM Site..."
                     Write-Log -iTabs 5 "Testing '$SCCMSite' as SCCM Site..." -bConsole $true
                     try{
-                        $qrySccmSite = $(get-WMIObject -ComputerName $SMSProvider -Namespace "root\SMS" -Class "SMS_ProviderLocation" | Where {$_.ProviderForLocalSite -eq "True"} | Select Sitecode).Sitecode
+                        $qrySccmSite = $(get-WMIObject -ComputerName $SMSProvider -Namespace "root\SMS" -Class "SMS_ProviderLocation" | Where-Object {$_.ProviderForLocalSite -eq "True"} | Select-Object Sitecode).Sitecode
                     }
                     catch{
                         Write-Log -iTabs 5 "Unable to reach $SMSProvider SiteCode via WMI. Ensure user permissions are present for this operation." -bConsole $true -sColor red
@@ -1098,7 +1097,7 @@ Function MainSub{
                 }while(!$sccmSiteTest)                  
             }
             #Setting SUG Template Name
-            if ($SUGTemplateName -eq $null){
+            if ($null -eq $SUGTemplateName){
                 $sugTest = $false
                 do{
                     $SUGTemplateName = Read-Host "                                      SUG Template Name [<SUGName>/Abort] "
@@ -1121,7 +1120,7 @@ Function MainSub{
                 }while(!$sugTest)                            
             }
             #Setting PKG Template Name
-            if ($PKGTemplateName -eq $null){
+            if ($null -eq $PKGTemplateName){
                 $pkgTest = $false
                 do{
                     $PKGTemplateName = Read-Host "                                      Package Template Name [<PKGName>/Abort] "
@@ -1146,7 +1145,7 @@ Function MainSub{
         }    
         # Testing SCCM Drive
         try{
-            cd $SCCMSite":"            
+            Set-Location $SCCMSite":"            
         }
         catch{
             Write-Log -iTabs 4 "Unable to connect to SCCM PSDrive. Aborting Script" -bConsole $true -sColor red
@@ -1163,8 +1162,7 @@ Function MainSub{
         Write-Log -iTabs 4 "PKG Name Template: $PKGTemplateName" -bConsole $true
     #endregion  
     #region 1.2 Is this SCCM Admin User?            
-        Write-Log -iTabs 2 "1.2 Checking if user has permissions in SCCM to run this script..." -bConsole $true -sColor Cyan
-        $userRoleTest = $false
+        Write-Log -iTabs 2 "1.2 Checking if user has permissions in SCCM to run this script..." -bConsole $true -sColor Cyan        
         <#    
         $userRoles = (Get-CMAdministrativeUser -Name $($sUserDomain+"\"+$sUserName)).RoleNames
         foreach ($role in $userRoles){
@@ -1212,9 +1210,9 @@ Function MainSub{
                 Write-Log -iTabs 3 "Checking if required SUGs are present." -bConsole $true
                     #Gettings SUG Info         
                     try{
-                        $sugs = Get-CMSoftwareUpdateGroup | Where {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
-                        $sugRpt = $sugs | Where {$_.LocalizedDisplayName -eq $SUGTemplateName+"Report"}
-                        $sugSustainer = $sugs | Where {$_.LocalizedDisplayName -eq $SUGTemplateName+"Sustainer"}                        
+                        $sugs = Get-CMSoftwareUpdateGroup | Where-Object {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
+                        $sugRpt = $sugs | Where-Object {$_.LocalizedDisplayName -eq $SUGTemplateName+"Report"}
+                        $sugSustainer = $sugs | Where-Object {$_.LocalizedDisplayName -eq $SUGTemplateName+"Sustainer"}                        
                     }
                     #Error while getting SUG Info
                     catch{                                                                        
@@ -1247,7 +1245,7 @@ Function MainSub{
                                 New-CMSoftwareUpdateGroup -Name "$($SUGTemplateName)Report" | Out-Null                                
                                 Write-Log -iTabs 5 "$($SUGTemplateName)Report was created" -bConsole $true -sColor green                                
                                 Write-Log -iTabs 5 "Reloading SUG Array." -bConsole $true 
-                                $sugs = Get-CMSoftwareUpdateGroup | Where {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
+                                $sugs = Get-CMSoftwareUpdateGroup | Where-Object {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
                             }    
                             catch{                                
                                 Write-Log -itabs 5 "Error while creating $($SUGTemplateName)Report. Ensure script is running with SCCM Full Admin permissions and access to SCCM WMI Provider." -bConsole $TRUE -sColor red
@@ -1280,7 +1278,7 @@ Function MainSub{
                                 New-CMSoftwareUpdateGroup -Name "$($SUGTemplateName)Sustainer" | Out-Null                                
                                 Write-Log -iTabs 4 "$($SUGTemplateName)Sustainer was created" -bConsole $true -sColor green                                
                                 Write-Log -iTabs 5 "Reloading SUG Array." -bConsole $true
-                                $sugs = Get-CMSoftwareUpdateGroup | Where {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
+                                $sugs = Get-CMSoftwareUpdateGroup | Where-Object {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
                             }    
                             catch{                                
                                 Write-Log -iTabs 4 "Error while creating $($SUGTemplateName)Sustainer. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -bConsole $true -sColor red
@@ -1295,9 +1293,9 @@ Function MainSub{
                 Write-Log -iTabs 3 "Checking if required Deployment Packages are present." -bConsole $true
                     #Getting Deployment Package Info 
                     try{                        
-                        $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
-                        $pkgMonth     = $pkgs | Where {$_.Name -eq "$($PKGTemplateName)Monthly"}
-                        $pkgSustainer = $pkgs | Where {$_.Name -eq "$($PKGTemplateName)Sustainer"}   
+                        $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where-Object {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
+                        $pkgMonth     = $pkgs | Where-Object {$_.Name -eq "$($PKGTemplateName)Monthly"}
+                        $pkgSustainer = $pkgs | Where-Object {$_.Name -eq "$($PKGTemplateName)Sustainer"}   
                     }
                     #Error while getting Deployment Package Info
                     catch{                        
@@ -1310,8 +1308,7 @@ Function MainSub{
                     if ($pkgMonth.Count -gt 0){                        
                         Write-Log -iTabs 4 "$($pkgMonth.Name) was found." -bConsole $true -sColor green                    
                         #Loading CI_IDs from Monthly Package                                        
-                        Write-Log -iTabs 4 "Loading CI_ID List from $($pkgMonth.Name)" -bConsole $true
-                        $upCount =0
+                        Write-Log -iTabs 4 "Loading CI_ID List from $($pkgMonth.Name)" -bConsole $true                        
                         $PkgID = [System.Convert]::ToString($pkgMonth.PackageID)
                         # The query pulls a list of all software updates in the current package.  This query doesn't pull back a clean value so will store it and then manipulate the string to just get the CI information we need a bit later.
                         $Query="SELECT DISTINCT su.* FROM SMS_SoftwareUpdate AS su JOIN SMS_CIToContent AS cc ON  SU.CI_ID = CC.CI_ID JOIN SMS_PackageToContent AS  pc ON pc.ContentID=cc.ContentID  WHERE  pc.PackageID='$PkgID' AND su.IsContentProvisioned=1 ORDER BY su.DateRevised Desc"
@@ -1369,7 +1366,7 @@ Function MainSub{
                                 New-CMSoftwareUpdateDeploymentPackage -Name "$($PKGTemplateName)Monthly" -Path "$sharePath" -Priority High | Out-Null                                
                                 Write-Log -iTabs 4 "$($PKGTemplateName)Monthly was created" -bConsole $true -sColor Green                                
                                 Write-Log -iTabs 4 "Updating Package Array" -bConsole $true
-                                $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
+                                $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where-Object {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
                             }    
                             catch{                                
                                 Write-Log -iTabs 4 "Error while creating $($PKGTemplateName)Monthly. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -bConsole $true -sColor red                                
@@ -1442,7 +1439,7 @@ Function MainSub{
                                 New-CMSoftwareUpdateDeploymentPackage -Name "$($PKGTemplateName)Sustainer" -Path $sharePath -Priority High | Out-Null                                
                                 Write-Log -iTabs 4 "$($PKGTemplateName)Sustainer was created" -bConsole $true -sColor green
                                 Write-Log -iTabs 4 "Updating Package Array" -bConsole $true
-                                $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
+                                $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where-Object {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
                             }    
                             catch{                                
                                 Write-Log -iTabs 4 "Error while creating $($PKGTemplateName)Sustainer. Ensure script is running with SCCM Full Admin permissionts and access to SCCM WMI Provider." -bConsole $true -sColor red                                
@@ -1456,7 +1453,7 @@ Function MainSub{
             #region Query all Expired Updates            
             Write-Log -iTabs 3 "Getting all Expired KBs from SCCM WMI." -bConsole $true
             try{
-                $ExpiredUpdates = Get-CMSoftwareUpdate -IsExpired $true -fast | Select -Property CI_ID
+                $ExpiredUpdates = Get-CMSoftwareUpdate -IsExpired $true -fast | Select-Object -Property CI_ID
                 Write-Log -iTabs 4 "Expired KBs: $($ExpiredUpdates.Count)" -bConsole $true -sColor Yellow
             }
             catch{
@@ -1469,7 +1466,7 @@ Function MainSub{
             #region Query All Superseded Updates
             Write-Log -iTabs 3 "Getting all Superseded KBs from SCCM WMI." -bConsole $true
             try{
-                $SupersededUpdates = Get-CMSoftwareUpdate -IsSuperseded $true -fast | Select -Property CI_ID
+                $SupersededUpdates = Get-CMSoftwareUpdate -IsSuperseded $true -fast | Select-Object -Property CI_ID
                 Write-Log -iTabs 4 "Superseded KBs: $($SupersededUpdates.Count)" -bConsole $true -sColor Yellow
             }
             catch{
@@ -1482,7 +1479,7 @@ Function MainSub{
             #region Query All Aged Updates            
             Write-Log -iTabs 3 "Getting all Aged KBs from SCCM WMI." -bConsole $true
             try{
-                $AgedUpdates = Get-CMSoftwareUpdate -DatePostedMax $(Get-Date).AddDays(-$timeSustainerAge) -IsSuperseded $false -IsExpired $false -fast | Select -Property CI_ID
+                $AgedUpdates = Get-CMSoftwareUpdate -DatePostedMax $(Get-Date).AddDays(-$timeSustainerAge) -IsSuperseded $false -IsExpired $false -fast | Select-Object -Property CI_ID
                 Write-Log -iTabs 4 "Aged KBs: $($AgedUpdates.Count)" -bConsole $true -sColor Yellow
             }
             catch{
@@ -1498,7 +1495,7 @@ Function MainSub{
     Write-Log -itabs 3 "SUG Information - These SUGs will be evaluated/changed by this script." -bConsole $true
     #$sugs | ft    
     foreach ($sug in $sugs){
-        $sugName = $sug.LocalizedDisplayName
+        #$sugName = $sug.LocalizedDisplayName
         Write-Log -itabs 4 $sug.LocalizedDisplayName -bConsole $true
     }    
     Write-Log -itabs 3 "Package Information - These PKGs will be evaluated/changed by this script." -bConsole $true
@@ -1543,7 +1540,7 @@ Function MainSub{
         Write-Log -iTabs 2 "2.1 - Review all Monthly SUGs, removing Expired or Superseded KBs. KBs older than 1 year will be moved to Sustainer"-bConsole $true -sColor cyan        
         $timeMonthSuperseded=$(Get-Date).AddDays(-$timeMonthSuperseded)        
         $sugCount=1
-        foreach ($sug in $sugs | Sort $sug.LocalizedDisplayName){                    
+        foreach ($sug in $sugs | Sort-Object $sug.LocalizedDisplayName){                    
             Write-Log -iTabs 3 "($sugCount/$($sugs.Count)) Evaluating SUG: $($sug.LocalizedDisplayName)." -bConsole $true
             #Skip if Report SUG
             if ($sug.LocalizedDisplayName -eq $($SUGTemplateName+"Report")){                
@@ -1602,8 +1599,8 @@ Function MainSub{
     Write-Log -iTabs 2 "2.4 - Review all SUGs, and ensure all valid KBs are member of $($SUGTemplateName)Report SUG." -bConsole $true -sColor cyan                        
         try{
             Write-Log -iTabs 3 "Reviewing $($SUGTemplateName+"Report") SUG, ensuring all valid KBs are present."  -bConsole $true                
-            $rptUpdList  = $($sugs | Where {$_.LocalizedDisplayName -eq "$($SUGTemplateName)Report"}).Updates
-            $nRptUpdList = $($sugs | Where {$_.LocalizedDisplayName -ne "$($SUGTemplateName)Report"}).Updates
+            $rptUpdList  = $($sugs | Where-Object {$_.LocalizedDisplayName -eq "$($SUGTemplateName)Report"}).Updates
+            $nRptUpdList = $($sugs | Where-Object {$_.LocalizedDisplayName -ne "$($SUGTemplateName)Report"}).Updates
             Maintain-ReportSug -SiteServerName $SMSProvider -SiteCode $SCCMSite -rptSUGUpdName $($SUGTemplateName+"Report") -rptSUGUpdList $rptUpdList -nonRptUpdList $nRptUpdList
         }    
         catch{        
@@ -1642,8 +1639,8 @@ Function MainSub{
     #getting current software update information
     Write-Log -itabs 2 "Refreshing SUG and PKG array" -bConsole $true
     try{
-        $sugs = Get-CMSoftwareUpdateGroup | Where {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
-        $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
+        $sugs = Get-CMSoftwareUpdateGroup | Where-Object {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                       
+        $pkgs = Get-CMSoftwareUpdateDeploymentPackage | Where-Object {$_.Name -like "$PKGTemplateName*"} | ConvertTo-Array
     }
     catch{
         Write-Log -itabs 2 "Error while refreshign arrays. Post-Checks won't be possible/reliable" -bConsole $true -sColor $red
