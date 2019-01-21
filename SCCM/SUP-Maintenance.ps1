@@ -613,11 +613,13 @@ function Set-DeploymentPackages {
             $ContentIDtoContent = Get-WMIObject -NameSpace root\sms\site_$($SiteCode) -Class SMS_CItoContent -Filter "CI_ID='$($upd.CI_ID)'"
             $ContentIDArray += $ContentIDtoContent.ContentID
         }
+        Write-Log -iTabs 5 "Converted updates into $($contentIDArray.count) ContentIDs" -bConsole $true
         #calling Remove Content Method known WMI bug might cause a temporary failure. Adding loop for resiliency while removing content.        
         $pause=0
+        $pkgClean = $false
         while($pkgClean -eq $false){
             try{                   
-                sleep $pause
+                Start-Sleep $pause
                 if ($action -eq "Run"){
                     $susPackageWMI.RemoveContent($ContentIDArray,$true) | Out-Null
                 }
@@ -632,8 +634,7 @@ function Set-DeploymentPackages {
                     Write-Log -itabs 5 "Unable to clena package. Try again later" -bConsole $true -sColor red               
                 }
             }
-        }
-       
+        }       
     }    
     # Deleting Updates from Monthly package, if needed
     if ($updatesToDeleteMonth.count -gt 0){
@@ -646,26 +647,28 @@ function Set-DeploymentPackages {
             $ContentIDtoContent = Get-WMIObject -NameSpace root\sms\site_$($SiteCode) -Class SMS_CItoContent -Filter "CI_ID='$($upd.CI_ID)'"
             $ContentIDArray += $ContentIDtoContent.ContentID
         }
+        Write-Log -iTabs 5 "Converted updates into $($contentIDArray.count) ContentIDs" -bConsole $true
         #calling Remove Content Method known WMI bug might cause a temporary failure. Adding loop for resiliency while removing content.
-        $errCount=0
-        $pkgClean=$false
-        $pause =0
-        do{
-            try{   
-                sleep $pause
+        $pause=0
+        $pkgClean = $false
+        while($pkgClean -eq $false){
+            try{                   
+                Start-Sleep $pause
                 if ($action -eq "Run"){
-                    $monPackageWMI.RemoveContent($ContentIDArray,$true) | Out-Null
+                    $MonPackageWMI.RemoveContent($ContentIDArray,$true) | Out-Null
                 }
                 $pkgClean=$true
                 Write-Log -itabs 5 "Package clean-up finished" -bConsole $true
             }
-            catch{
-                $errcount++                
-                Write-Log -itabs 5 "Package clean-up failed, but is a known issue. Will retry another $(5-$errCount) times" -bConsole $true -sColor red
-                $pause +=5
-                Write-Log -itabs 5 "Waiting $pause seconds before trying again" -bConsole $true
+            catch{                             
+                Write-Log -itabs 5 "Package clean-up failed, but is a known issue. Will again" -bConsole $true -sColor red               
+                $pause +=5                
+                if ($pause -eq 25 ){
+                    $pkgClean=$true
+                    Write-Log -itabs 5 "Unable to clena package. Try again later" -bConsole $true -sColor red               
+                }
             }
-        }while (($errCount -lt 5) -or ($pkgClean -ne $true)) 
+        }
     }    
     # Downloading updates to Sustainer package, if needed
     if ($updatesToDownloadSus.count -gt 0){
