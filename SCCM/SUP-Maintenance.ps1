@@ -591,25 +591,82 @@ function Set-DeploymentPackages {
     # Checking if all updates in Sustainer package is present in SUGs
     $updatesToDeleteSus = @()
     foreach ($update in $pkgSustainerList){
-        if (!($nonRptUpdList -match $update)){
+        if (!($nonRptUpdList -match $update.CI_ID)){
             $updatesToDeleteSus += $update        
         }
     }
 
     $updatesToDeleteMonth = @()
     foreach ($update in $pkgMonthlyList){
-        if (!($nonRptUpdList -match $update)){
+        if (!($nonRptUpdList -match $update.CI_ID)){
             $updatesToDeleteMonth += $update        
         }
     }
     # Deleting Updates from Sustainer package, if needed
     if ($updatesToDeleteSus.count -gt 0){
         Write-Log -iTabs 4 "Found $($updatesToDeleteSus.count) extra updates to be deleted from Sustainer Pkg" -bConsole $true
-    }
+        #creating obj with Package WMI
+        $susPackageWMI = Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Class SMS_SoftwareUpdatesPackage -Filter "Name ='$pkgSustainer'"
+        $ContentIDArray = @()
+        # Converting CI_ID into ContentID
+        foreach($upd in $updatesToDeleteSus){            
+            $ContentIDtoContent = Get-WMIObject -NameSpace root\sms\site_$($SiteCode) -Class SMS_CItoContent -Filter "CI_ID='$($upd.CI_ID)'"
+            $ContentIDArray += $ContentIDtoContent.ContentID
+        }
+        #calling Remove Content Method known WMI bug might cause a temporary failure. Adding loop for resiliency while removing content.        
+        $pause=0
+        while($pkgClean -eq $false){
+            try{                   
+                sleep $pause
+                if ($action -eq "Run"){
+                    $susPackageWMI.RemoveContent($ContentIDArray,$true) | Out-Null
+                }
+                $pkgClean=$true
+                Write-Log -itabs 5 "Package clean-up finished" -bConsole $true
+            }
+            catch{                             
+                Write-Log -itabs 5 "Package clean-up failed, but is a known issue. Will again" -bConsole $true -sColor red               
+                $pause +=5                
+                if ($pause -eq 25 ){
+                    $pkgClean=$true
+                    Write-Log -itabs 5 "Unable to clena package. Try again later" -bConsole $true -sColor red               
+                }
+            }
+        }
+       
+    }    
     # Deleting Updates from Monthly package, if needed
     if ($updatesToDeleteMonth.count -gt 0){
         Write-Log -iTabs 4 "Found $($updatesToDeleteMonth.count) extra updates to be deleted from Monthly Pkg" -bConsole $true
-    }
+        #creating obj with Package WMI
+        $monPackageWMI = Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Class SMS_SoftwareUpdatesPackage -Filter "Name ='$pkgMonthly'"
+        $ContentIDArray = @()
+        # Converting CI_ID into ContentID
+        foreach($upd in $updatesToDeleteMonth){            
+            $ContentIDtoContent = Get-WMIObject -NameSpace root\sms\site_$($SiteCode) -Class SMS_CItoContent -Filter "CI_ID='$($upd.CI_ID)'"
+            $ContentIDArray += $ContentIDtoContent.ContentID
+        }
+        #calling Remove Content Method known WMI bug might cause a temporary failure. Adding loop for resiliency while removing content.
+        $errCount=0
+        $pkgClean=$false
+        $pause =0
+        do{
+            try{   
+                sleep $pause
+                if ($action -eq "Run"){
+                    $monPackageWMI.RemoveContent($ContentIDArray,$true) | Out-Null
+                }
+                $pkgClean=$true
+                Write-Log -itabs 5 "Package clean-up finished" -bConsole $true
+            }
+            catch{
+                $errcount++                
+                Write-Log -itabs 5 "Package clean-up failed, but is a known issue. Will retry another $(5-$errCount) times" -bConsole $true -sColor red
+                $pause +=5
+                Write-Log -itabs 5 "Waiting $pause seconds before trying again" -bConsole $true
+            }
+        }while (($errCount -lt 5) -or ($pkgClean -ne $true)) 
+    }    
     # Downloading updates to Sustainer package, if needed
     if ($updatesToDownloadSus.count -gt 0){
         Write-Log -iTabs 4 "Found $($updatesToDownloadSus.count) required to be downloaded into Sustainer Pkg" -bConsole $true
@@ -648,262 +705,7 @@ function Set-DeploymentPackages {
         }
     }
     Write-Log -iTabs 3 "Deployment Packages review is now complete"
-    <#
-# Retrieve all software update deployment packages and softare update groups matching their respective templates
-    $SoftwareUpdateDeploymentPackages = Get-CMSoftwareUpdateDeploymentPackage | WHERE {$_.Name -like "*$PkgName*"}
-    $SoftwareUpdateGroups = Get-cmsoftwareupdategroup | WHERE {$_.LocalizedDisplayName -like "*$SugName*"}
 
-# Declare hashtables that will be used to keep track of items for comparison and various arrays that will hold 
-# temporary values during processing.
-$HTUpdateGroupsandUpdates = @{}
-$HTUpdateGroupsandUpdatestoRemove = @{}
-$HTUpdateDeploymentPackagesandUpdates = @{}
-$HTUpdateDeploymentPackagesandUpdatestoRemove = @{}
-$TempArray = @()
-$TempDepPkgCIRemovalArray = @()
-$TempUpdGrpCIRemovalArray = @()
-$TempPkgCIArray = @()
-$TempUpdCIArray = @()
-
-# Pull and store a list of all configuration items for each deployment package in a hash table.
-ForEach ($DeploymentPackage in $SoftwareUpdateDeploymentPackages){
-    Write-Host "   Checking Package $($DeploymentPackage.Name)"
-    Write-Log     "Checking Package $($DeploymentPackage.Name)" -iTabs 4
-    $upCount=1
-    # Need to convert the Package ID from the deployment package object to a string
-    $PkgID = [System.Convert]::ToString($DeploymentPackage.PackageID)
-    # The query pulls a list of all software updates in the current package.  This query doesn't
-    # pull back a clean value so will store it and then manipulate the string to just get the CI
-    # information we need a bit later.
-    $Query="SELECT DISTINCT su.* FROM SMS_SoftwareUpdate AS su JOIN SMS_CIToContent AS cc ON  SU.CI_ID = CC.CI_ID JOIN SMS_PackageToContent AS  pc ON pc.ContentID=cc.ContentID  WHERE  pc.PackageID='$PkgID' AND su.IsContentProvisioned=1 ORDER BY su.DateRevised Desc"
-    $QueryResults=@(Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Query $Query)
-
-    # Work one by one through every CI that is part of the package adding each to the array to be
-    # stored in the hash table.
-    ForEach ($CI in $QueryResults)
-    {        
-        $upCount++
-        # Need to convert the CI information to a string
-        $IndividualCIinDeploymentPackage = [System.Convert]::ToString($CI)
-        # Since the converted string has more text than just the CI value need to
-        # manipulate it to strip off the unneeded parts.
-        $Index = $IndividualCIinDeploymentPackage.IndexOf("=")
-        $IndividualCIinDeploymentPackage = $IndividualCIinDeploymentPackage.remove(0, ($Index + 1))
-        $TempPkgCIArray += $IndividualCIinDeploymentPackage
-    }
-    Write-Host "    Total Updates: $upCount" -ForegroundColor Gray
-    Write-Log      "Total Updates: $upCount" -iTabs 5
-    # Add the entry to the hashtable in the format (DeploymentPackageName, Array of CI values) and then
-    # reset the array for the next batch of values.
-    $HTUpdateDeploymentPackagesandUpdates.Add($DeploymentPackage.Name, $TempPkgCIArray)
-    $TempPkgCIArray = @()
-}
-
-# Pull and store a list of all configuration items for each software update group in a hash table.
-ForEach ($UpdateGroup in $SoftwareUpdateGroups){
-    Write-Host "   Checking SUG $($UpdateGroup.LocalizedDisplayName)"
-    Write-Log     "Checking SUG $($UpdateGroup.LocalizedDisplayName)" -iTabs 4    
-    $upCount=1
-    # Work one by one throgu every CI that is part of the update group adding each to the array to be
-    # stored in the hash table.
-    ForEach ($UpdateID in $UpdateGroup.Updates)
-    {
-        $TempUpdCIArray += $UpdateID        
-        $upcount++
-    }
-    # Add the entry to the hashtable in the format (SoftwareUpdateGroupName, Array of CI values) and then
-    # reset the array for the next batch of values.
-    $HTUpdateGroupsandUpdates.Add($UpdateGroup.LocalizedDisplayName, $TempUpdCIArray)
-    $TempUpdCIArray = @()
-    Write-Host "        Total Updates: $upCount" -ForegroundColor Gray
-    Write-Log          "Total Updates: $upCount" -iTabs 5
-}
-
-# Check Deployment Packages to see if there are any updates that are not currently in an update group.
-# Start by examining each package in the hashtable.
-Write-Host "    Checking Deployment Packages to see if there are any updates that are not currently in an update group."
-Write-Log      "Checking Deployment Packages to see if there are any updates that are not currently in an update group." -iTabs 4
-foreach($Package in $HTUpdateDeploymentPackagesandUpdates.Keys){
-    Write-Host "        Checking Deployment Package $Package"
-    # Loop through each CI that has been stored in the array associated with the deployment package
-    # entry and compare to see if there is a matching item in any of the software update groups.
-    foreach($PkgCI in $HTUpdateDeploymentPackagesandUpdates["$Package"])
-    {
-        # Flag variable to note whether a match has occurred.  Reset for every loop of a new
-        # CI being tested.
-        $PkgCIMatch = $false 
-        # Now loop through the array of CI's in software update group hashtable and see if a match
-        # is detected in any of them.
-        foreach($UpdGrpCI in $HTUpdateGroupsandUpdates.Values)
-        {
-            # This final loop tests individual CI's inside the array pulled from the software updates 
-            # group hashtable.
-            foreach ($UpdCI in $UpdGrpCI)
-            {
-                # If a match is detected break out of the loop and move on to the next CI.  Set the
-                # PkgCIMatch flag variable to $true indicating a match.
-                if ($PkgCI -eq $UpdCI)
-                {
-                    $PkgCIMatch=$true
-                    
-                    Write-Host "        PkgCI($PkgCI) is being used in a SUG" -foregroundcolor DarkGreen
-                    #Write-Host "$Package|$PkgCI - $UpdCI MATCH!" -ForegroundColor Yellow
-                    break
-                }
-                if($PkgCIMatch){break}
-            }
-            if($PkgCIMatch){break}
-        }
-        # If no match is detected then that means there is an update CI in the deployment package that is not
-        # found in any software update group.  This update needs to be added to another hash table that will 
-        # be used to track updates that need further handling.  The flag variable is not reset here because it
-        # is already false.  Note also that no adition is made to the hashtable here becasuse the inner loop
-        # needs to fully complete and the flag variable remain false in order to meet the conditions to be added
-        # to the hashtable.
-        If ($PkgCIMatch -eq $false)
-        {
-            $TempDepPkgCIRemovalArray += $PkgCI
-            Write-Host "        PkgCI($PkgCI) is not being used in a SUG. Flagging for deletion" -foregroundcolor Red
-            Write-Log          "$Package|$PkgCI NO MATCH!" -iTabs 5
-        }
-        $PkgCIMatch = $false
-    }
-    # Add the package and any mismatched CI's to the hash table for further processing and reinitilize the temporary
-    # array for the next pass.
-    $HTUpdateDeploymentPackagesandUpdatestoRemove.Add($Package, $TempDepPkgCIRemovalArray)
-    # Reinitialize the array for the next pass.
-    $TempDepPkgCIRemovalArray = @()
-}
-
-# Check Software Update groups to see if there are any updates that are not currently in a deployment package..
-# Start by examining each updategroup in the hashtable.
-Write-Host "    Check Software Update groups to see if there are any updates that are not currently in a deployment package.." -ForegroundColor Yellow
-foreach($UpdateGroup in $HTUpdateGroupsandUpdates.Keys){
-    Write-Host "        Checking SUG $UpdateGroup"
-    # Loop through each CI that has been stored in the array associated with the software update group
-    # and compare to see if there is a matching item in any of the deployment packages.
-    foreach($UpdCI in $HTUpdateGroupsandUpdates["$UpdateGroup"])
-    {
-        # Flag variable to note whether a match has occurred.  Reset for every loop of a new
-        # CI being tested.
-        $UpdCIMatch = $false
-        # Now loop through the array of CI's in software update deployment package hashtable and see if a match
-        # is detected in any of them.
-        foreach($PkgCI in $HTUpdateDeploymentPackagesandUpdates.values)
-        {
-            # This final loop tests individual CI's inside the array pulled from the software updates deployment
-            # package hashtable.
-            foreach ($CI in $PkgCI)
-            {
-                # If a match is detected break out of the loop and move on to the next CI.  Set the
-                # PkgCIMatch flag variable to $true indicating a match.
-                if ($UpdCI -eq $CI)
-                {
-                    $UpdCIMatch=$true
-                    Write-Host "        SugCI($UpdCI) is present in a package" -foregroundcolor DarkGreen
-                    break
-                }
-                if($UpdCIMatch){break}
-            }
-            if($UpdCIMatch){break}
-        }
-        # If no match is detected then that means there is a CI in the software update group that is not
-        # found in any deployment package.  This update needs to be added to another hash table that will 
-        # be used to track updates that need further handling.  The flag variable is not reset here because it
-        # is already false.  Note also that no adition is made to the hashtable here becasuse the inner loop
-        # needs to fully complete and the flag variable remain false in order to meet the conditions to be added
-        # to the hashtable.
-        If ($UpdCIMatch -eq $false)
-        {
-            $TempUpdGrpCIRemovalArray += $UpdCI
-            Write-Host "        SugCI($PkgCI) is not present in a package. Flagging for download" -foregroundcolor Red
-            Write-Log          "$UpdateGroup|$UpdCI NO MATCH!" -iTabs 5
-        }
-        $UpdCIMatch = $false
-    }
-    $HTUpdateGroupsandUpdatestoRemove.Add($UpdateGroup, $TempUpdGrpCIRemovalArray)
-    # Reinitialize array for next loop.
-    $TempUpdGrpCIRemovalArray = @()
-}
-
-# Have seen some discussion that the removecontent method may error erroneously sometimes so setting to
-# silently continue in that section just in case.
-$ErrorActionPreference="SilentlyContinue"    
-# No process any remove hashtables that were created and remove updates that are part of a deployment package 
-# but not part of any update group.
-# Start looping through by package.
-foreach ($Package in $HTUpdateDeploymentPackagesandUpdatestoRemove.Keys){
-    # Reinitialize the array
-    $ContentIDArray = @()
-    # Check to verify there are CI's in the array associated to the package.  If no CI's then break and continue
-    # loop.
-    If ($HTUpdateDeploymentPackagesandUpdatestoRemove["$Package"] -ne $Null){
-        # Retrieve the specific package from WMI
-        $GetPackage = Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Class SMS_SoftwareUpdatesPackage -Filter "Name ='$Package'"
-        # Content removal is done by Content ID and NOT by CI_ID.
-        # Declare an array to hold ContentIDs associated with each CI associated with the package.
-        $ContentIDArray = @()
-        # Loop through each CI associated with the package in the hashtable
-        foreach($PkgCI in $HTUpdateDeploymentPackagesandUpdatestoRemove["$Package"]){
-            # Retrieve the Content ID associated with each CI and store the value in the ContentID array just created.
-            $ContentIDtoContent = Get-WMIObject -NameSpace root\sms\site_$($SiteCode) -Class SMS_CItoContent -Filter "CI_ID='$PkgCI'"
-            $ContentIDArray += $ContentIDtoContent.ContentID
-        }
-        # Call the RemoveContent method on the SMS_SoftwareUpdatesPackage WMI class to remove the content from the specific
-        # deployment package currently being processed.  This removal will remove the CI from the deployment package and will
-        # also delete the source files from the source directory.
-        write-host "    Processing package $Package and removing Content IDs not needed in SUGs"                    
-        Write-Log      "Processing package $Package and removing Content IDs not needed in SUGs" -iTabs 4
-        if($takeaction){
-            $errCount=0
-            $pkgClean=$false
-            do{
-                try{   
-                    $GetPackage.RemoveContent($ContentIDArray,$true) | Out-Null
-                    $pkgClean=$true
-                }
-                catch{
-                    $errcount++
-                    write-host "    Package clean-up failed, but is a known issue. Will retry another $(5-$errCount) times" -ForegroundColor Red                    
-                    Write-Log      "Package clean-up failed, but is a known issue. Will retry another $(5-$errCount) times" -iTabs 4
-                }
-            }while (($errCount -lt 5) -or ($pkgClean -ne $true)) 
-        }
-        $ContentIDArray = @()
-    }
-}
-
-# Resetting for normal error handling
-$ErrorActionPreference = "Stop"
-
-# List updates that are part of an update group but not part of any deployment package
-# This is similar to the above loops but much easier since there is no content removal.
-Write-Host "    Listing SUGs Missing Content. Download Article IDs into the listed Package" 
-Write-Log      "Listing SUGs Missing Content. Download Article IDs into the listed Package" -iTabs 4
-Write-Host "        TargetPackage | Article | Title"
-Write-Log          "TargetPackage | Article | Title" -iTabs 5
-$AgeThresholdfunc = (GET-DAte).AddDays(-$timeSustainerAge)
-foreach ($UpdateGroup in $HTUpdateGroupsandUpdatestoRemove.Keys){
-    If ($HTUpdateGroupsandUpdatestoRemove["$UpdateGroup"] -ne $Null)
-    {
-        
-        foreach($UpdCI in $HTUpdateGroupsandUpdatestoRemove["$UpdateGroup"])
-        {
-            $UpdateQuery = "select * from SMS_SoftwareUpdate where CI_ID = '$UpdCI'"
-            $updateInfo = @(Get-WmiObject -ComputerName $SiteProviderServerName -Namespace root\sms\site_$($SiteCode) -Query $UpdateQuery)   
-            $UpdateDate = [System.Management.ManagementDateTimeConverter]::ToDateTime($updateInfo.DatePosted)    
-            if ($UpdateDate -lt $AgeThresholdfunc){
-                $targetPkg = "Sustainer"
-            }
-            else{
-                $targetPkg = "Monthly"
-            }
-                Write-Host "        $targetPkg | $($updateInfo.ArticleID) | $($updateInfo.LocalizedDisplayName)"
-                Write-Log          "$targetPkg | $($updateInfo.ArticleID) | $($updateInfo.LocalizedDisplayName)" -itabs 5
-        }
-    }
-}
-#>
 }
 function Get-NumUpdInGroups{
 # This script will examine the count of updates in each deployed update group and provide a warning
