@@ -1427,7 +1427,7 @@ Function MainSub{
             #if SUG is stable (DateCreate is lesser than Today-35 days and greater than Today-365 days) remove Expired and Superseded KBs Only. Delete Deployments to small DGs
             elseif ($sug.DateCreated -lt $tSustainerAge){                                
                 Write-Log -iTabs 4 "Removing Expired and Superseeded KBs. Deployments to initial DGs will be deleted."  -bConsole $true
-                Set-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $false -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $true -aSupersededUpdates $SupersededUpdates                
+                Set-SUGPair -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -CurrentUpdateGroup $sug.LocalizedDisplayName -CurUpdList $sug.Updates -PersistentUpdateGroup $($SUGTemplateName+"Sustainer") -PerUpdList $sugSustainer.Updates -HandleAgedUpdates $false -PurgeExpired $true -aExpUpdates $ExpiredUpdates -PurgeSuperseded $true -aSupersededUpdates $SupersededUpdates -pkgSusName $pkgSustainer.Name -pkgSusList $pkgSustainerList                
                 Delete-OldDeployments -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -sugID $sug.CI_ID
             }
             #if SUG is old (DateCreate is lesser than Today-365 days) remove Expired and Superseded KBs Only. Move valid KBs to Sustainer and Delete SUG
