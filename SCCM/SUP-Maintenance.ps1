@@ -467,6 +467,8 @@ function Set-SUGPair{
     }        
     #If aged updates were flagged, script will check if they need to be downloaded to sustainer, add them to sustainer SUG and finally remove from current SUG
     If (($updatesToMove.Count -gt 0) -and ($HandleAgedUpdates)){
+        # due to the sensitivity of this process, a controll variable will be used named "$proceed" once it enters any major loop it will get value as $false.
+        # once major loop is completed without errors the variable will receive value $true, allowing next major loop to start
         Write-Log -iTabs 4 "Adding $($updatesToMove.Count) updates to $PersistentUpdateGroup due to being Aged" -bConsole $true            
         # checking if there is a need to download updates
         Write-Log -iTabs 5 "Checking if updates to be moved, have to be downloaded." -bConsole $true
@@ -480,7 +482,9 @@ function Set-SUGPair{
         }
         Write-Log -iTabs 5 "Found $($updatesToDownload.Count) updates to be downloaded." -bConsole $true
         # downloading updates if needed
-        if ($downloadUpd){            
+        $proceed=$true
+        if (($downloadUpd) -and ($proceed)){            
+            $proceed=$false
             Write-Log -iTabs 5 "Downloading $($updatesToDownload.Count) updates." -bConsole $true
             $updcnt=1
             foreach ($upd in $updatesToDownload){
@@ -498,33 +502,44 @@ function Set-SUGPair{
             }
             
             Write-Log -iTabs 6 "$($updatesToDownload.Count) updates Downloaded into $pkgSusName." -bConsole $true -sColor Green
+            if ($upd -eq $updatesToDownload.count){
+                $proceed=$true
+            }
         }
         else{
             Write-Log -iTabs 5 "No need to download updates at this moment." -bConsole $true
         }
         # Adding updates to Sustainer
-        $upInSustainer=$false                
-        try{            
-            Write-Log -iTabs 5 "Adding $($updatesToMove.Count) to Sustainer SUG." -bConsole $true
-            $updcnt=1
-            foreach ($upd in $updatesToMove){
-                if ($Action -eq "Run"){  
-                    Add-CMSoftwareUpdateToGroup -SoftwareUpdateId $upd -SoftwareUpdateGroupName $PersistentUpdateGroup -Force -WarningAction SilentlyContinue
-                }
-                Write-Log -iTabs 5 "($updcnt/$($updatesToMove.Count)) - $upd added to $PersistentUpdateGroup." -bConsole $true
-                $updcnt++
-            }
-            $upInSustainer=$true
-            Write-Log -iTabs 5 "$($updatesToMove.Count) updates added to $PersistentUpdateGroup" -bConsole $true -sColor Green
+        if (!($proceed)){
+            Write-Log -iTabs 4 "Failure detected while downloading KBs into Sustainer. KB Move will not proceed." -bConsole $true -sColor red
         }
-        catch{
-            Write-Log -iTabs 5 "Error while running Add-CMSoftwareUpdateToGroup" -bConsole $true -sColor Red 
-            Write-Log -iTabs 5 "Aborting script." -bConsole $true -sColor red
-            $global:iExitCode = 9015
-            return $global:iExitCode
-        }                
+        else{
+            $proceed=$false
+            try{            
+                Write-Log -iTabs 5 "Adding $($updatesToMove.Count) to Sustainer SUG." -bConsole $true
+                $updcnt=1
+                foreach ($upd in $updatesToMove){
+                    if ($Action -eq "Run"){  
+                        Add-CMSoftwareUpdateToGroup -SoftwareUpdateId $upd -SoftwareUpdateGroupName $PersistentUpdateGroup -Force -WarningAction SilentlyContinue
+                    }
+                    Write-Log -iTabs 5 "($updcnt/$($updatesToMove.Count)) - $upd added to $PersistentUpdateGroup." -bConsole $true
+                    $updcnt++
+                }
+                $upInSustainer=$true
+                Write-Log -iTabs 5 "$($updatesToMove.Count) updates added to $PersistentUpdateGroup" -bConsole $true -sColor Green
+            }
+            catch{
+                Write-Log -iTabs 5 "Error while running Add-CMSoftwareUpdateToGroup" -bConsole $true -sColor Red 
+                Write-Log -iTabs 5 "Aborting script." -bConsole $true -sColor red
+                $global:iExitCode = 9015
+                return $global:iExitCode
+            }
+            if ($upd -eq $updatesToMove.Count){
+                $proceed=$true
+            }  
+        }              
         # removing updates from Monthly SUG
-        if ($upInSustainer){
+        if ($proceed){
             Write-Log -iTabs 4 "Removing $($updatesToMove.Count) from $CurrentUpdateGroup due to being Aged" -bConsole $true            
             $updcnt=1
             foreach ($upd in $updatesToMove){
@@ -555,7 +570,7 @@ function Set-SUGPair{
             }
         }
         else{
-            Write-Log -iTabs 4 "Script will not remove updates from $CurrentUpdateGroup since it failed to add to Sustainer" -bConsole $true            
+            Write-Log -iTabs 4 "Script will not remove updates from $CurrentUpdateGroup since it failed to add updates in Sustainer" -bConsole $true            
         }
     }
 }
