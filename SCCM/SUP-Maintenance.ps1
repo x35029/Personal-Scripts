@@ -7,7 +7,7 @@
 # --------------------------------------------------------------------------------------------
 #region HEADER
 $SCRIPT_TITLE = "SUP-Maintenance"
-$SCRIPT_VERSION = "4.0"
+$SCRIPT_VERSION = "4.1"
 
 $ErrorActionPreference 	= "Continue"	# SilentlyContinue / Stop / Continue
 
@@ -580,7 +580,9 @@ function Set-DeploymentPackages {
         [Parameter(Mandatory = $false)]
         $SiteCode,
         [Parameter(Mandatory = $false)]
-        $nonRptUpdList,
+        $monUpdList,
+        [Parameter(Mandatory = $false)]
+        $susUpdList,
         [Parameter(Mandatory = $false)]
         $pkgMonthlyList,
         [Parameter(Mandatory = $false)]
@@ -594,25 +596,26 @@ function Set-DeploymentPackages {
     $updatesToDownloadMonth =@()
     $updatesToDownloadSus =@()
     Write-Log -iTabs 3 "Evaluating if downloaded updates are deployed in SUGs" -bConsole $true
-    foreach ($update in $nonRptUpdList){
-        if (!($pkgMonthlyList -match $update)){
+    foreach ($update in $monUpdList){
+        if (!($pkgMonthlyList.CI_ID -match $update)){
             $updatesToDownloadMonth += $update
         }
-        if (!($pkgSustainerList -match $update)){
+    }
+    foreach ($update in $susUpdList){
+        if (!($pkgSustainerList.CI_ID -match $update)){
             $updatesToDownloadSus += $update
         }
     }
     # Checking if all updates in Sustainer package is present in SUGs
     $updatesToDeleteSus = @()
     foreach ($update in $pkgSustainerList){
-        if (!($nonRptUpdList -match $update.CI_ID)){
+        if (!($susUpdList -match $update.CI_ID)){
             $updatesToDeleteSus += $update        
         }
     }
-
     $updatesToDeleteMonth = @()
     foreach ($update in $pkgMonthlyList){
-        if (!($nonRptUpdList -match $update.CI_ID)){
+        if (!($monUpdList -match $update.CI_ID)){
             $updatesToDeleteMonth += $update        
         }
     }
@@ -641,7 +644,7 @@ function Set-DeploymentPackages {
                 Write-Log -itabs 5 "Package clean-up finished" -bConsole $true
             }
             catch{                             
-                Write-Log -itabs 5 "Package clean-up failed, but is a known issue. Will again" -bConsole $true -sColor red               
+                Write-Log -itabs 5 "Package clean-up failed, but is a known issue. Will try again" -bConsole $true -sColor red               
                 $pause +=5                
                 if ($pause -eq 25 ){
                     $pkgClean=$true
@@ -675,7 +678,7 @@ function Set-DeploymentPackages {
                 Write-Log -itabs 5 "Package clean-up finished" -bConsole $true
             }
             catch{                             
-                Write-Log -itabs 5 "Package clean-up failed, but is a known issue. Will again" -bConsole $true -sColor red               
+                Write-Log -itabs 5 "Package clean-up failed, but is a known issue. Will try again" -bConsole $true -sColor red               
                 $pause +=5                
                 if ($pause -eq 25 ){
                     $pkgClean=$true
@@ -1472,23 +1475,28 @@ Function MainSub{
     #endregion
     #region 2.4 Review all SUGs, and ensure all KBs are member of <SUG_NAME>-Report SUG.        
     Write-Log -iTabs 2 "2.4 - Review all SUGs, and ensure all valid KBs are member of $($SUGTemplateName)Report SUG." -bConsole $true -sColor cyan                        
-        try{
-            Write-Log -iTabs 3 "Reviewing $($SUGTemplateName+"Report") SUG, ensuring all valid KBs are present."  -bConsole $true    
-            $sugs = Get-CMSoftwareUpdateGroup | Where-Object {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                                                           
-            $rptUpdList  = $($sugs | Where-Object {$_.LocalizedDisplayName -eq "$($SUGTemplateName)Report"}).Updates
-            $nRptUpdList = $($sugs | Where-Object {$_.LocalizedDisplayName -ne "$($SUGTemplateName)Report"}).Updates
-            Set-ReportSug -SiteServerName $SMSProvider -SiteCode $SCCMSite -rptSUGUpdName $($SUGTemplateName+"Report") -rptSUGUpdList $rptUpdList -nonRptUpdList $nRptUpdList
-        }    
-        catch{        
-            Write-Log -iTabs 4 "Error while processing Report SUG. Aborting script." -bConsole $true -sColor red
-            $global:iExitCode = 9006
-            return $global:iExitCode
-        }    
+    try{
+        Write-Log -iTabs 3 "Reviewing $($SUGTemplateName+"Report") SUG, ensuring all valid KBs are present."  -bConsole $true    
+        $sugs = Get-CMSoftwareUpdateGroup | Where-Object {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                                                           
+        $rptUpdList  = $($sugs | Where-Object {$_.LocalizedDisplayName -eq "$($SUGTemplateName)Report"}).Updates
+        $nRptUpdList = $($sugs | Where-Object {$_.LocalizedDisplayName -ne "$($SUGTemplateName)Report"}).Updates
+        Set-ReportSug -SiteServerName $SMSProvider -SiteCode $SCCMSite -rptSUGUpdName $($SUGTemplateName+"Report") -rptSUGUpdList $rptUpdList -nonRptUpdList $nRptUpdList
+    }    
+    catch{        
+        Write-Log -iTabs 4 "Error while processing Report SUG. Aborting script." -bConsole $true -sColor red
+        $global:iExitCode = 9006
+        return $global:iExitCode
+    }    
     #endregion    
     #region 2.5 Remove unused KBs from Packages (KBs not deployed) and Reports KBs deployed not in any package    
     Write-Log -iTabs 2 "2.5 Remove unused KBs from Packages (KBs not deployed) and list KBs deployed not in any package" -bConsole $true -sColor cyan    
     try{
-        Set-DeploymentPackages -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -nonRptUpdList $nRptUpdList -pkgMonthlyList $pkgMonthlyList -pkgSustainerList $pkgSustainerList -pkgMonthly $pkgMonth.Name -pkgSustainer $pkgSustainer.Name
+        Write-Log -iTabs 3 "Reviewing $($PKGTemplateName+"Monthly") and $($PKGTemplateName+"Sustainer"). Extra KBs will be removed, needed  will be downloaded"  -bConsole $true   
+        $sugs = Get-CMSoftwareUpdateGroup | Where-Object {$_.LocalizedDisplayName -like "$SUGTemplateName*"} | ConvertTo-Array                                                           
+        $rptUpdList  = $($sugs | Where-Object {$_.LocalizedDisplayName -eq "$($SUGTemplateName)Report"}).Updates
+        $monUpdList = $($sugs | Where-Object {$_.LocalizedDisplayName -ne "$($SUGTemplateName)Report" -and $_.LocalizedDisplayName -ne "$($SUGTemplateName)Sustainer"}).Updates
+        $susUpdList = $($sugs | Where-Object {$_.LocalizedDisplayName -eq "$($SUGTemplateName)Sustainer"}).Updates        
+        Set-DeploymentPackages -SiteProviderServerName $SMSProvider -SiteCode $SCCMSite -monUpdList $monUpdList -susUpdList $susUpdList -pkgMonthlyList $pkgMonthlyList -pkgSustainerList $pkgSustainerList -pkgMonthly $pkgMonth.Name -pkgSustainer $pkgSustainer.Name
     }
     catch{     
         Write-Log -iTabs 3 "Error while handling packages" -bConsole $true -sColor red
