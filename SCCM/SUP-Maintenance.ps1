@@ -486,14 +486,14 @@ function Set-SUGPair{
         if (($downloadUpd) -and ($proceed)){            
             $proceed=$false
             Write-Log -iTabs 5 "Downloading $($updatesToDownload.Count) updates." -bConsole $true
-            $updcnt=1
+            $updcnt=0
             foreach ($upd in $updatesToDownload){
                 try{                    
                     if ($Action -eq "Run"){
                         Save-CMSoftwareUpdate -SoftwareUpdateId $upd -DeploymentPackageName $pkgSusName -SoftwareUpdateLanguage "English" -DisableWildcardHandling -WarningAction SilentlyContinue                         
                     }
-                    Write-Log -iTabs 6 "($updcnt/$($updatesToDownload.Count)) - Update $upd downloaded to $pkgSusName pkg." -bConsole $true
                     $updcnt++
+                    Write-Log -iTabs 6 "($updcnt/$($updatesToDownload.Count)) - Update $upd downloaded to $pkgSusName pkg." -bConsole $true                    
                 }
                 catch{            
                     Write-Log -iTabs 6 "Error Downloading $upd into $pkgSusName." -bConsole $true -sColor red                                        
@@ -517,15 +517,14 @@ function Set-SUGPair{
             $proceed=$false
             try{            
                 Write-Log -iTabs 5 "Adding $($updatesToMove.Count) to Sustainer SUG." -bConsole $true
-                $updcnt=1
+                $updcnt=0
                 foreach ($upd in $updatesToMove){
                     if ($Action -eq "Run"){  
                         Add-CMSoftwareUpdateToGroup -SoftwareUpdateId $upd -SoftwareUpdateGroupName $PersistentUpdateGroup -Force -WarningAction SilentlyContinue
                     }
-                    Write-Log -iTabs 5 "($updcnt/$($updatesToMove.Count)) - $upd added to $PersistentUpdateGroup." -bConsole $true
                     $updcnt++
-                }
-                $upInSustainer=$true
+                    Write-Log -iTabs 5 "($updcnt/$($updatesToMove.Count)) - $upd added to $PersistentUpdateGroup." -bConsole $true                    
+                }                
                 Write-Log -iTabs 5 "$($updatesToMove.Count) updates added to $PersistentUpdateGroup" -bConsole $true -sColor Green
             }
             catch{
@@ -534,7 +533,7 @@ function Set-SUGPair{
                 $global:iExitCode = 9015
                 return $global:iExitCode
             }
-            if ($upd -eq $updatesToMove.Count){
+            if ($updcnt -eq $updatesToMove.Count){
                 $proceed=$true
             }  
         }              
@@ -838,6 +837,13 @@ function Delete-OldDeployments{
             $SCCMSite = "CAS"
             $SUGTemplateName = "WKS-SecurityUpdates-"
             $PKGTemplateName = "WKS-SecurityUpdates-"
+        } 
+        #IF S2M
+        "S2M-WKS" {
+            $SMSProvider = "x1xcfg01.inf-na.xomlab.com"
+            $SCCMSite = "CAS"
+            $SUGTemplateName = ""
+            $PKGTemplateName = ""
         }        
         #IF VAR
         "VAR"{
